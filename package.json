@@ -1,0 +1,10 @@
+{
+  "name": "palabras-rapanui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sitio y panel para publicar palabras rapa nui con audio, QR e imágenes para redes.",
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "11.1.3"
+  }
+}

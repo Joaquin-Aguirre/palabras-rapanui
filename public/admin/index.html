@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Panel de palabras</title>
+<link rel="stylesheet" href="/assets/fonts.css">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<!-- Entrada -->
+<section id="vLogin" class="login" hidden>
+  <form id="fLogin" class="card-login">
+    <h1>Panel de palabras</h1>
+    <p class="muted">Escribe la contraseña de administrador.</p>
+    <label for="clave">Contraseña</label>
+    <input type="password" id="clave" autocomplete="current-password" required>
+    <label class="check" for="recordar"><input type="checkbox" id="recordar"> <span>Recordar en este equipo</span></label>
+    <button class="btn" type="submit">Entrar</button>
+    <p class="msg" id="msgLogin" role="status"></p>
+  </form>
+</section>
+
+<!-- Panel -->
+<div id="vApp" hidden>
+  <header class="bar">
+    <strong class="brand" id="marcaNombre">Panel</strong>
+    <nav class="tabs" aria-label="Secciones">
+      <button type="button" class="tab" data-tab="palabras" aria-current="page">Palabras</button>
+      <button type="button" class="tab" data-tab="marca">Marca</button>
+    </nav>
+    <div class="bar-end">
+      <a class="link" href="/" target="_blank" rel="noopener">Ver sitio</a>
+      <button type="button" class="link" id="salir">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Palabras -->
+    <section id="tabPalabras" class="cols">
+      <aside class="lista">
+        <div class="lista-head">
+          <h2>Colección <span class="muted" id="conteo"></span></h2>
+          <button class="btn sm" type="button" id="nueva">+ Nueva</button>
+        </div>
+        <input type="search" id="buscar" placeholder="Buscar palabra o significado" aria-label="Buscar">
+        <div id="items" class="items"></div>
+      </aside>
+
+      <div class="panel">
+        <!-- Editor -->
+        <form id="fPalabra" class="editor" novalidate>
+          <div class="ed-head">
+            <h2 id="edTitulo">Nueva palabra</h2>
+            <span class="slug" id="slugView"></span>
+          </div>
+
+          <div class="f">
+            <label for="palabra">Palabra en rapa nui</label>
+            <input type="text" id="palabra" class="big" autocomplete="off" spellcheck="false" autocapitalize="off" required>
+            <div class="inline">
+              <div class="chars"><button type="button" data-ch="ʻ" aria-label="Insertar oclusiva glotal">ʻ</button><button type="button" data-ch="ŋ" aria-label="Insertar ŋ">ŋ</button></div>
+              <span class="hint">Tal como va en la prenda.</span>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="f"><label for="es">Significado en español</label><input type="text" id="es" required></div>
+            <div class="f"><label for="tipo">Tipo</label><input type="text" id="tipo" list="tipos" placeholder="Ave, Pez, Mar…"><datalist id="tipos"><option value="Ave"><option value="Pez"><option value="Mar"><option value="Actividad"><option value="Planta"><option value="Naturaleza"></datalist></div>
+          </div>
+
+          <!-- Audio -->
+          <div class="f">
+            <span class="lbl">Audio</span>
+            <div class="media" id="audioBox">
+              <div class="inline">
+                <button type="button" class="btn rec" id="grabar"><span class="dot"></span><span id="grabarTxt">Grabar</span></button>
+                <label class="btn ghost file">Subir archivo<input type="file" id="audioFile" accept="audio/*,video/mp4,.mp3,.m4a,.mp4,.mov,.wav,.aac,.ogg,.webm"></label>
+                <span class="timer" id="timer" hidden>0:00</span>
+              </div>
+              <audio id="audioPrev" controls hidden></audio>
+              <span class="hint" id="audioInfo">Graba con el micrófono o sube un mp3, m4a o mp4. Se recortan los silencios y se convierte a mp3 solo.</span>
+            </div>
+          </div>
+
+          <!-- Imagen -->
+          <div class="row">
+            <div class="f">
+              <span class="lbl">Ilustración</span>
+              <div class="media img" id="imgBox">
+                <div class="patch-prev" id="imgPatch"><span id="imgLetter"></span><img id="imgPrev" alt="" hidden></div>
+                <div class="stack">
+                  <label class="btn ghost file sm">Elegir imagen<input type="file" id="imgFile" accept="image/png,image/webp,image/jpeg"></label>
+                  <button type="button" class="link" id="quitarImg" hidden>Quitar</button>
+                  <span class="hint">PNG con fondo transparente se ve mejor.</span>
+                </div>
+              </div>
+            </div>
+            <div class="f">
+              <label for="en">Viene en</label>
+              <input type="text" id="en" placeholder="Jockey, Polera, Bolso">
+              <span class="hint">Separa con comas.</span>
+              <label for="guia" style="margin-top:10px">Guía de pronunciación</label>
+              <input type="text" id="guia" placeholder="VA-ve">
+            </div>
+          </div>
+
+          <details class="mas">
+            <summary>Más detalles</summary>
+            <div class="row">
+              <div class="f"><label for="voz">Voz (quién grabó)</label><input type="text" id="voz"><span class="hint">Solo con su permiso.</span></div>
+              <div class="f"><label for="texto">Texto sobre la palabra</label><textarea id="texto" rows="3"></textarea></div>
+            </div>
+          </details>
+
+          <div class="checks">
+            <label class="check" for="validado"><input type="checkbox" id="validado"> <span><b>Validada</b> por la Academia o un hablante. Sin esto la página muestra "Por validar".</span></label>
+            <label class="check" for="publicada"><input type="checkbox" id="publicada" checked> <span><b>Publicada</b> en el sitio. Si la desmarcas, queda guardada pero oculta.</span></label>
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="submit" id="guardar">Guardar y publicar</button>
+            <button class="btn ghost" type="button" id="verKit" hidden>QR e imágenes</button>
+            <a class="link" id="verPagina" target="_blank" rel="noopener" hidden>Ver página</a>
+            <span class="grow"></span>
+            <button class="btn danger" type="button" id="borrar" hidden>Eliminar</button>
+          </div>
+          <div class="confirm" id="confirmBorrar" hidden>
+            <span>¿Eliminar esta palabra y su audio? Si ya imprimiste su QR, dejará de funcionar.</span>
+            <button class="btn danger sm" type="button" id="borrarSi">Sí, eliminar</button>
+            <button class="btn ghost sm" type="button" id="borrarNo">Cancelar</button>
+          </div>
+          <p class="msg" id="msg" role="status"></p>
+        </form>
+
+        <!-- Kit para redes -->
+        <section id="kit" class="kit" hidden>
+          <div class="ed-head">
+            <h2>Listo: <span id="kitPalabra" lang="rap"></span></h2>
+            <button type="button" class="link" id="kitCerrar">Volver a editar</button>
+          </div>
+          <p class="aviso" id="kitAvisoDominio" hidden>El QR apunta a la dirección provisoria de Netlify. Antes de imprimir etiquetas, define tu dominio en la pestaña Marca.</p>
+          <div class="kit-grid">
+            <div class="kit-item">
+              <div class="qr" id="kitQR"></div>
+              <div class="kit-txt"><b>QR para la etiqueta</b><span class="hint url" id="kitURL"></span>
+                <div class="inline"><button type="button" class="btn sm" id="dlQRsvg">SVG imprenta</button><button type="button" class="btn ghost sm" id="dlQRpng">PNG</button></div></div>
+            </div>
+            <div class="kit-item">
+              <img id="kitHistoria" alt="Imagen para historias" class="thumb tall">
+              <div class="kit-txt"><b>Historia</b><span class="hint">1080 × 1920. Agrega el link con un sticker de enlace.</span>
+                <div class="inline"><button type="button" class="btn sm" id="dlHistoria">Descargar</button><button type="button" class="btn ghost sm share-btn" data-que="historia" hidden>Compartir</button></div></div>
+            </div>
+            <div class="kit-item">
+              <img id="kitPost" alt="Imagen para el feed" class="thumb">
+              <div class="kit-txt"><b>Post para el feed</b><span class="hint">1080 × 1350, formato vertical de Instagram.</span>
+                <div class="inline"><button type="button" class="btn sm" id="dlPost">Descargar</button><button type="button" class="btn ghost sm share-btn" data-que="post" hidden>Compartir</button></div></div>
+            </div>
+          </div>
+          <div class="f">
+            <label for="caption">Texto para la publicación</label>
+            <textarea id="caption" rows="7"></textarea>
+            <div class="inline"><button type="button" class="btn sm" id="copiarCaption">Copiar texto</button><button type="button" class="btn ghost sm" id="copiarLink">Copiar link</button><a class="link" id="kitAbrir" target="_blank" rel="noopener">Abrir página</a></div>
+            <p class="msg" id="kitMsg" role="status"></p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Marca -->
+    <section id="tabMarca" class="marca" hidden>
+      <form id="fMarca" class="editor" novalidate>
+        <h2>Datos de la marca</h2>
+        <p class="muted">Aparecen en todas las páginas y en las imágenes para redes.</p>
+        <div class="row">
+          <div class="f"><label for="mNombre">Nombre de la marca</label><input type="text" id="mNombre"></div>
+          <div class="f"><label for="mInstagram">Instagram</label><input type="text" id="mInstagram" placeholder="tumarca (sin @)"></div>
+        </div>
+        <div class="f"><label for="mBajada">Frase de la colección</label><input type="text" id="mBajada"></div>
+        <div class="f"><label for="mPrograma">Aporte a la lengua</label><input type="text" id="mPrograma" placeholder="El 10% de cada venta va al programa de lengua de …"></div>
+        <div class="row">
+          <div class="f"><label for="mTienda">Link de la tienda</label><input type="text" id="mTienda" placeholder="https://…"></div>
+          <div class="f"><label for="mContacto">Contacto</label><input type="text" id="mContacto" placeholder="hola@tumarca.cl"></div>
+        </div>
+        <div class="row">
+          <div class="f"><label for="mDominio">Dominio propio</label><input type="text" id="mDominio" placeholder="https://tumarca.cl"><span class="hint">Los QR y links usan esta dirección. Defínela antes de imprimir.</span></div>
+          <div class="f"><label for="mHashtags">Hashtags</label><input type="text" id="mHashtags"><span class="hint">Se agregan al texto de cada publicación.</span></div>
+        </div>
+        <div class="actions"><button class="btn" type="submit">Guardar marca</button></div>
+        <p class="msg" id="msgMarca" role="status"></p>
+      </form>
+    </section>
+  </main>
+</div>
+
+<script src="/lib/qrcode.js"></script>
+<script src="/assets/imagenes.js"></script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>

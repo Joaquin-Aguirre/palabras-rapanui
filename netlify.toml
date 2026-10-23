@@ -1,0 +1,20 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  command = "echo 'Sitio sin compilación: listo.'"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Los QR antiguos con ?p=palabra los redirige la función de páginas.
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Cache-Control = "no-store"
