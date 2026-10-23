@@ -4,7 +4,13 @@
 //   post(p)     1080 × 1350  publicación del feed de Instagram
 // p = { palabra, es, tipo, imagen (url o Image), marca, host, slug }
 (function () {
-  var C = { bg: "#10272F", patch: "#1C3640", thread: "rgba(236,240,238,.7)", ink: "#ECF0EE", muted: "#93A8AB", accent: "#E07A5C", accentInk: "#1A0A05" };
+  var ACENTO = "#E07A5C";
+  var C = { bg: "#10272F", patch: "#1C3640", thread: "rgba(236,240,238,.7)", ink: "#ECF0EE", muted: "#93A8AB", accent: ACENTO, accentInk: "#1A0A05" };
+  function usarAcento(p) {
+    C.accent = (p && /^#[0-9a-fA-F]{6}$/.test(p.acento || "")) ? p.acento : ACENTO;
+    var n = parseInt(C.accent.slice(1), 16), lum = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+    C.accentInk = lum > 0.55 ? "#1A0A05" : "#FFFFFF";
+  }
   var SERIF = '"Noto Serif Display", Georgia, serif', SANS = '"Atkinson Hyperlegible", system-ui, sans-serif';
 
   function cargarFuentes(texto) {
@@ -58,6 +64,7 @@
   }
 
   async function og(p) {
+    usarAcento(p);
     await cargarFuentes(p.palabra); var img = await cargarImagen(p.imagen);
     var r = lienzo(1200, 630), c = r[0], x = r[1];
     var izq = 80, ancho = img ? 640 : 1040;
@@ -69,12 +76,13 @@
     x.fillStyle = C.muted; x.font = "400 40px " + SANS; x.fillText("significa", izq, y);
     x.fillStyle = C.ink; x.font = "700 40px " + SANS; x.fillText(p.es, izq + x.measureText("significa ").width + 6, y);
     x.fillStyle = C.accent; x.font = "700 32px " + SANS; x.fillText("▶  Escúchala en la voz de un hablante", izq, 540);
-    x.fillStyle = C.muted; x.font = "400 26px " + SANS; x.fillText((p.host || "") + "/p/" + p.slug, izq, 584);
+    x.fillStyle = C.muted; x.font = "400 26px " + SANS; x.fillText((p.enlace || ((p.host || "") + "/p/" + p.slug)), izq, 584);
     if (img) parche(x, 960, 315, 205, img);
     return c;
   }
 
   async function historia(p) {
+    usarAcento(p);
     await cargarFuentes(p.palabra); var img = await cargarImagen(p.imagen);
     var r = lienzo(1080, 1920), c = r[0], x = r[1], cx = 540;
     marcaArriba(x, cx, 160, p.marca, 34);
@@ -94,11 +102,12 @@
     x.fillStyle = C.muted; x.font = "400 56px " + SANS; x.fillText("significa", cx, y + 110);
     x.fillStyle = C.ink; ajustar(x, p.es, "700", SANS, 900, 72, 40); x.fillText(p.es, cx, y + 200);
     pastilla(x, cx, 1600, 560, 120, "▶  Escúchala", 52);
-    x.fillStyle = C.muted; x.font = "400 38px " + SANS; x.fillText((p.host || "") + "/p/" + p.slug, cx, 1730);
+    x.fillStyle = C.muted; x.font = "400 38px " + SANS; x.fillText((p.enlace || ((p.host || "") + "/p/" + p.slug)), cx, 1730);
     return c;
   }
 
   async function post(p) {
+    usarAcento(p);
     await cargarFuentes(p.palabra); var img = await cargarImagen(p.imagen);
     var r = lienzo(1080, 1350), c = r[0], x = r[1], cx = 540;
     marcaArriba(x, cx, 120, p.marca, 30);

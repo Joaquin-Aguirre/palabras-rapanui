@@ -118,3 +118,31 @@ details.mas[open] summary{margin-bottom:12px}
 .url{overflow-wrap:anywhere}
 
 .marca{max-width:46rem}
+
+/* ---- Plataforma: selector, pestañas generales, grupos, voces, tablas ---- */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.selector select,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:7px 14px}
+.selector select{font-weight:700}
+input[type=color]{width:52px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:3px}
+.ancho{max-width:52rem}
+fieldset.grupo{border:1px solid var(--line);border-radius:14px;padding:16px;margin:0;display:flex;flex-direction:column;gap:14px;min-width:0}
+fieldset.grupo legend{font:700 1rem var(--display);padding:0 6px}
+.stack-list{display:flex;flex-direction:column;gap:10px}
+.voz-row{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.voz-row.nueva{border-color:var(--ok)}
+.voz-row.sin{border-color:var(--accent)}
+.voz-row audio{width:100%}
+.voz-row .row{gap:10px}
+.voz-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.voz-head b{font-size:.95rem}
+.var-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,12rem) auto;gap:8px;align-items:center}
+@media (max-width:600px){.var-row{grid-template-columns:1fr auto}.var-row select{grid-column:1}}
+.tabla{display:flex;flex-direction:column;gap:8px}
+.fila{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--bg)}
+.fila .grow{min-width:0}
+.fila b{font-size:1rem}
+.sub{border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:14px}
+h3{font:700 1.05rem var(--display);margin:0}
+.chk{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.95rem;cursor:pointer}
+.chk input{accent-color:var(--ok)}

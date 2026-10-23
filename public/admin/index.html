@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Panel de palabras</title>
+<title>Panel IMITA</title>
 <link rel="stylesheet" href="/assets/fonts.css">
 <link rel="stylesheet" href="/admin/admin.css">
 </head>
@@ -13,32 +13,44 @@
 <!-- Entrada -->
 <section id="vLogin" class="login" hidden>
   <form id="fLogin" class="card-login">
-    <h1>Panel de palabras</h1>
-    <p class="muted">Escribe la contraseña de administrador.</p>
+    <span class="eyebrow">IMITA</span>
+    <h1>Panel de lenguas</h1>
+    <label for="correo">Correo</label>
+    <input type="text" id="correo" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>
     <label for="clave">Contraseña</label>
     <input type="password" id="clave" autocomplete="current-password" required>
-    <label class="check" for="recordar"><input type="checkbox" id="recordar"> <span>Recordar en este equipo</span></label>
+    <label class="check" for="recordar"><input type="checkbox" id="recordar" checked> <span>Mantener la sesión en este equipo</span></label>
     <button class="btn" type="submit">Entrar</button>
     <p class="msg" id="msgLogin" role="status"></p>
+    <p class="hint">Administración general: en correo escribe <b>admin</b>.</p>
   </form>
 </section>
 
 <!-- Panel -->
 <div id="vApp" hidden>
   <header class="bar">
-    <strong class="brand" id="marcaNombre">Panel</strong>
+    <span class="brand">IMITA</span>
+    <div class="selector" id="selectorBox">
+      <label for="lenguaSel" class="sr">Lengua</label>
+      <select id="lenguaSel"></select>
+    </div>
     <nav class="tabs" aria-label="Secciones">
       <button type="button" class="tab" data-tab="palabras" aria-current="page">Palabras</button>
-      <button type="button" class="tab" data-tab="marca">Marca</button>
+      <button type="button" class="tab" data-tab="lengua">Lengua</button>
+      <button type="button" class="tab general" data-tab="lenguas" hidden>Lenguas</button>
+      <button type="button" class="tab general" data-tab="personas" hidden>Personas</button>
+      <button type="button" class="tab" data-tab="cuenta">Mi cuenta</button>
     </nav>
     <div class="bar-end">
-      <a class="link" href="/" target="_blank" rel="noopener">Ver sitio</a>
+      <a class="link" id="verSitio" href="/" target="_blank" rel="noopener">Ver sitio</a>
       <button type="button" class="link" id="salir">Salir</button>
     </div>
   </header>
 
   <main>
-    <!-- Palabras -->
+    <p class="aviso" id="sinLenguas" hidden>Todavía no tienes lenguas asignadas. Pide acceso a la administración general.</p>
+
+    <!-- ============ Palabras ============ -->
     <section id="tabPalabras" class="cols">
       <aside class="lista">
         <div class="lista-head">
@@ -50,7 +62,6 @@
       </aside>
 
       <div class="panel">
-        <!-- Editor -->
         <form id="fPalabra" class="editor" novalidate>
           <div class="ed-head">
             <h2 id="edTitulo">Nueva palabra</h2>
@@ -58,34 +69,44 @@
           </div>
 
           <div class="f">
-            <label for="palabra">Palabra en rapa nui</label>
+            <label for="palabra">Palabra</label>
             <input type="text" id="palabra" class="big" autocomplete="off" spellcheck="false" autocapitalize="off" required>
             <div class="inline">
-              <div class="chars"><button type="button" data-ch="ʻ" aria-label="Insertar oclusiva glotal">ʻ</button><button type="button" data-ch="ŋ" aria-label="Insertar ŋ">ŋ</button></div>
-              <span class="hint">Tal como va en la prenda.</span>
+              <div class="chars" id="chars"></div>
+              <span class="hint" id="charsHint">Tal como va en la prenda.</span>
             </div>
           </div>
 
           <div class="row">
             <div class="f"><label for="es">Significado en español</label><input type="text" id="es" required></div>
-            <div class="f"><label for="tipo">Tipo</label><input type="text" id="tipo" list="tipos" placeholder="Ave, Pez, Mar…"><datalist id="tipos"><option value="Ave"><option value="Pez"><option value="Mar"><option value="Actividad"><option value="Planta"><option value="Naturaleza"></datalist></div>
+            <div class="f"><label for="tipo">Tipo</label><input type="text" id="tipo" list="tipos" placeholder="Ave, Pez, Mar…"><datalist id="tipos"><option value="Ave"><option value="Pez"><option value="Mar"><option value="Actividad"><option value="Planta"><option value="Naturaleza"><option value="Familia"></datalist></div>
           </div>
 
-          <!-- Audio -->
+          <!-- Escrituras -->
+          <div class="f" id="escriturasBox">
+            <span class="lbl">Formas de escribirla</span>
+            <div class="inline" id="sistemaBox" hidden>
+              <label for="sistema" class="hint">La palabra de arriba está escrita en</label>
+              <select id="sistema"></select>
+            </div>
+            <div id="variantes" class="stack-list"></div>
+            <button type="button" class="link" id="addVariante">+ Agregar otra forma de escribirla</button>
+          </div>
+
+          <!-- Voces -->
           <div class="f">
-            <span class="lbl">Audio</span>
+            <span class="lbl">Voces</span>
+            <div id="audios" class="stack-list"></div>
             <div class="media" id="audioBox">
               <div class="inline">
-                <button type="button" class="btn rec" id="grabar"><span class="dot"></span><span id="grabarTxt">Grabar</span></button>
+                <button type="button" class="btn rec" id="grabar"><span class="dot"></span><span id="grabarTxt">Grabar una voz</span></button>
                 <label class="btn ghost file">Subir archivo<input type="file" id="audioFile" accept="audio/*,video/mp4,.mp3,.m4a,.mp4,.mov,.wav,.aac,.ogg,.webm"></label>
                 <span class="timer" id="timer" hidden>0:00</span>
               </div>
-              <audio id="audioPrev" controls hidden></audio>
-              <span class="hint" id="audioInfo">Graba con el micrófono o sube un mp3, m4a o mp4. Se recortan los silencios y se convierte a mp3 solo.</span>
+              <span class="hint" id="audioInfo">Graba con el micrófono o sube un mp3, m4a o mp4. Se recortan los silencios y se convierte a mp3 solo. Puedes agregar varias voces.</span>
             </div>
           </div>
 
-          <!-- Imagen -->
           <div class="row">
             <div class="f">
               <span class="lbl">Ilustración</span>
@@ -107,17 +128,12 @@
             </div>
           </div>
 
-          <details class="mas">
-            <summary>Más detalles</summary>
-            <div class="row">
-              <div class="f"><label for="voz">Voz (quién grabó)</label><input type="text" id="voz"><span class="hint">Solo con su permiso.</span></div>
-              <div class="f"><label for="texto">Texto sobre la palabra</label><textarea id="texto" rows="3"></textarea></div>
-            </div>
-          </details>
+          <div class="f"><label for="texto">Texto sobre la palabra (opcional)</label><textarea id="texto" rows="2"></textarea></div>
 
           <div class="checks">
-            <label class="check" for="validado"><input type="checkbox" id="validado"> <span><b>Validada</b> por la Academia o un hablante. Sin esto la página muestra "Por validar".</span></label>
-            <label class="check" for="publicada"><input type="checkbox" id="publicada" checked> <span><b>Publicada</b> en el sitio. Si la desmarcas, queda guardada pero oculta.</span></label>
+            <label class="check" for="validado"><input type="checkbox" id="validado"> <span><b>Validada.</b> Sin esto la página muestra "Por validar".</span></label>
+            <div class="f" id="validadoPorBox" hidden><label for="validadoPor">Validada por</label><input type="text" id="validadoPor" placeholder="Academia de la Lengua, nombre del hablante…"></div>
+            <label class="check" for="publicada"><input type="checkbox" id="publicada" checked> <span><b>Publicada.</b> Si la desmarcas, queda guardada pero oculta.</span></label>
           </div>
 
           <div class="actions">
@@ -128,20 +144,19 @@
             <button class="btn danger" type="button" id="borrar" hidden>Eliminar</button>
           </div>
           <div class="confirm" id="confirmBorrar" hidden>
-            <span>¿Eliminar esta palabra y su audio? Si ya imprimiste su QR, dejará de funcionar.</span>
+            <span>¿Eliminar esta palabra y todas sus voces? Si ya imprimiste su QR, dejará de funcionar.</span>
             <button class="btn danger sm" type="button" id="borrarSi">Sí, eliminar</button>
             <button class="btn ghost sm" type="button" id="borrarNo">Cancelar</button>
           </div>
           <p class="msg" id="msg" role="status"></p>
         </form>
 
-        <!-- Kit para redes -->
         <section id="kit" class="kit" hidden>
           <div class="ed-head">
-            <h2>Listo: <span id="kitPalabra" lang="rap"></span></h2>
+            <h2>Listo: <span id="kitPalabra" lang="und"></span></h2>
             <button type="button" class="link" id="kitCerrar">Volver a editar</button>
           </div>
-          <p class="aviso" id="kitAvisoDominio" hidden>El QR apunta a la dirección provisoria de Netlify. Antes de imprimir etiquetas, define tu dominio en la pestaña Marca.</p>
+          <p class="aviso" id="kitAvisoDominio" hidden>Esta lengua todavía no tiene dominio propio: el QR apunta a una dirección provisoria. Antes de imprimir etiquetas, asigna su dominio en la pestaña Lengua.</p>
           <div class="kit-grid">
             <div class="kit-item">
               <div class="qr" id="kitQR"></div>
@@ -169,27 +184,110 @@
       </div>
     </section>
 
-    <!-- Marca -->
-    <section id="tabMarca" class="marca" hidden>
-      <form id="fMarca" class="editor" novalidate>
-        <h2>Datos de la marca</h2>
-        <p class="muted">Aparecen en todas las páginas y en las imágenes para redes.</p>
-        <div class="row">
-          <div class="f"><label for="mNombre">Nombre de la marca</label><input type="text" id="mNombre"></div>
-          <div class="f"><label for="mInstagram">Instagram</label><input type="text" id="mInstagram" placeholder="tumarca (sin @)"></div>
+    <!-- ============ Lengua ============ -->
+    <section id="tabLengua" class="ancho" hidden>
+      <form id="fLengua" class="editor" novalidate>
+        <div class="ed-head"><h2 id="lenguaTitulo">Lengua</h2><span class="slug" id="lenguaBase"></span></div>
+
+        <fieldset class="grupo general-only" hidden>
+          <legend>Configuración general</legend>
+          <div class="row">
+            <div class="f"><label for="lNombre">Nombre de la lengua (en español)</label><input type="text" id="lNombre"></div>
+            <div class="f"><label for="lDominios">Dominios</label><input type="text" id="lDominios" placeholder="vananga.cl"><span class="hint">Separa con comas. El primero es el que va en los QR.</span></div>
+          </div>
+          <label class="check" for="lActiva"><input type="checkbox" id="lActiva"> <span><b>Activa.</b> Si la desactivas, su sitio deja de verse.</span></label>
+          <label class="check" for="lDefecto"><input type="checkbox" id="lDefecto"> <span>Usar para los QR de prueba con la dirección de Netlify.</span></label>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend>Escritura</legend>
+          <div class="row">
+            <div class="f"><label for="lNombreLengua">Nombre en la propia lengua</label><input type="text" id="lNombreLengua" placeholder="Vānaŋa Rapa Nui"></div>
+            <div class="f"><label for="lCaracteres">Botones de caracteres especiales</label><input type="text" id="lCaracteres" placeholder="ʻ, ŋ"><span class="hint">Separa con comas. Aparecen al escribir una palabra.</span></div>
+          </div>
+          <div class="f"><label for="lSistemas">Formas de escritura o alfabetos</label><input type="text" id="lSistemas" placeholder="Unificado, Ragileo, Azümchefe"><span class="hint">Opcional. Si la lengua tiene varios alfabetos, cada palabra puede guardarse en todos.</span></div>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend>Marca y sitio</legend>
+          <div class="row">
+            <div class="f"><label for="mNombre">Nombre de la marca</label><input type="text" id="mNombre"></div>
+            <div class="f"><label for="mInstagram">Instagram</label><input type="text" id="mInstagram" placeholder="vananga (sin @)"></div>
+          </div>
+          <div class="f"><label for="mBajada">Frase de la colección</label><input type="text" id="mBajada"></div>
+          <div class="f"><label for="mPrograma">Aporte a la lengua</label><input type="text" id="mPrograma" placeholder="El 10% de cada venta va al programa de lengua de …"></div>
+          <div class="row">
+            <div class="f"><label for="mTienda">Link de la tienda</label><input type="text" id="mTienda" placeholder="https://…"></div>
+            <div class="f"><label for="mContacto">Contacto</label><input type="text" id="mContacto"></div>
+          </div>
+          <div class="row">
+            <div class="f"><label for="mHashtags">Hashtags</label><input type="text" id="mHashtags"></div>
+            <div class="f"><label for="lAcento">Color de acento</label><div class="inline"><input type="color" id="lAcento"><span class="hint">Botones, etiquetas e imágenes para redes.</span></div></div>
+          </div>
+        </fieldset>
+        <div class="actions"><button class="btn" type="submit">Guardar</button></div>
+        <p class="msg" id="msgLengua" role="status"></p>
+      </form>
+    </section>
+
+    <!-- ============ Lenguas (general) ============ -->
+    <section id="tabLenguas" class="ancho" hidden>
+      <div class="editor">
+        <h2>Lenguas de la plataforma</h2>
+        <div id="listaLenguas" class="tabla"></div>
+        <form id="fNuevaLengua" class="sub" novalidate>
+          <h3>Nueva lengua</h3>
+          <div class="row">
+            <div class="f"><label for="nlNombre">Nombre en español</label><input type="text" id="nlNombre" placeholder="Mapudungun"></div>
+            <div class="f"><label for="nlId">Código corto</label><input type="text" id="nlId" placeholder="mapudungun" autocapitalize="off"><span class="hint">Letras y números, sin espacios. No se puede cambiar después.</span></div>
+          </div>
+          <div class="f"><label for="nlNombreLengua">Nombre en la propia lengua (opcional)</label><input type="text" id="nlNombreLengua"></div>
+          <div class="actions"><button class="btn" type="submit">Crear lengua</button></div>
+          <p class="msg" id="msgNuevaLengua" role="status"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ Personas (general) ============ -->
+    <section id="tabPersonas" class="ancho" hidden>
+      <div class="editor">
+        <h2>Personas con acceso</h2>
+        <p class="muted">Cada persona entra con su correo y solo ve las lenguas que le asignes.</p>
+        <div id="listaPersonas" class="tabla"></div>
+        <form id="fPersona" class="sub" novalidate>
+          <h3 id="personaTitulo">Agregar persona</h3>
+          <div class="row">
+            <div class="f"><label for="pCorreo">Correo</label><input type="text" id="pCorreo" inputmode="email" autocapitalize="off"></div>
+            <div class="f"><label for="pNombre">Nombre</label><input type="text" id="pNombre"></div>
+          </div>
+          <div class="f"><span class="lbl">Lenguas que puede administrar</span><div id="pLenguas" class="inline"></div></div>
+          <div class="row">
+            <div class="f"><label for="pClave" id="pClaveLbl">Contraseña inicial</label><input type="text" id="pClave" autocomplete="off"><span class="hint">Mínimo 8 caracteres. Compártela por un canal privado; la persona puede cambiarla en Mi cuenta.</span></div>
+            <div class="f">
+              <span class="lbl">Rol</span>
+              <label class="check" for="pGeneral"><input type="checkbox" id="pGeneral"> <span>Administración general (ve todas las lenguas y personas)</span></label>
+              <label class="check" for="pActivo"><input type="checkbox" id="pActivo" checked> <span>Acceso activo</span></label>
+            </div>
+          </div>
+          <div class="actions"><button class="btn" type="submit" id="pGuardar">Agregar</button><button class="btn ghost" type="button" id="pCancelar" hidden>Cancelar</button><span class="grow"></span><button class="btn danger" type="button" id="pBorrar" hidden>Quitar acceso</button></div>
+          <p class="msg" id="msgPersona" role="status"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ Mi cuenta ============ -->
+    <section id="tabCuenta" class="ancho" hidden>
+      <form id="fCuenta" class="editor" novalidate>
+        <h2>Mi cuenta</h2>
+        <p id="cuentaInfo" class="muted"></p>
+        <div id="cuentaClave">
+          <div class="row">
+            <div class="f"><label for="cActual">Contraseña actual</label><input type="password" id="cActual" autocomplete="current-password"></div>
+            <div class="f"><label for="cNueva">Nueva contraseña</label><input type="password" id="cNueva" autocomplete="new-password"></div>
+          </div>
+          <div class="actions"><button class="btn" type="submit">Cambiar contraseña</button></div>
         </div>
-        <div class="f"><label for="mBajada">Frase de la colección</label><input type="text" id="mBajada"></div>
-        <div class="f"><label for="mPrograma">Aporte a la lengua</label><input type="text" id="mPrograma" placeholder="El 10% de cada venta va al programa de lengua de …"></div>
-        <div class="row">
-          <div class="f"><label for="mTienda">Link de la tienda</label><input type="text" id="mTienda" placeholder="https://…"></div>
-          <div class="f"><label for="mContacto">Contacto</label><input type="text" id="mContacto" placeholder="hola@tumarca.cl"></div>
-        </div>
-        <div class="row">
-          <div class="f"><label for="mDominio">Dominio propio</label><input type="text" id="mDominio" placeholder="https://tumarca.cl"><span class="hint">Los QR y links usan esta dirección. Defínela antes de imprimir.</span></div>
-          <div class="f"><label for="mHashtags">Hashtags</label><input type="text" id="mHashtags"><span class="hint">Se agregan al texto de cada publicación.</span></div>
-        </div>
-        <div class="actions"><button class="btn" type="submit">Guardar marca</button></div>
-        <p class="msg" id="msgMarca" role="status"></p>
+        <p class="msg" id="msgCuenta" role="status"></p>
       </form>
     </section>
   </main>

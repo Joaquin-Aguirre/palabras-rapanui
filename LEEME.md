@@ -1,40 +1,55 @@
-# Palabras rapa nui: sitio y panel
+# IMITA: lenguas que se escuchan
 
-Cada prenda o artículo lleva un QR. El QR abre la página de su palabra, con el significado y el audio de un hablante rapa nui.
+Plataforma para publicar palabras de lenguas originarias con la voz de sus hablantes. Cada prenda u objeto lleva una palabra y un QR; al escanearlo, la palabra se escucha.
 
-Todo se maneja desde el panel en `/admin`, en el computador o el celular:
+Un solo sistema atiende a todas las lenguas:
 
-- Crear una palabra: escribirla (con botones para ʻ y ŋ), grabar el audio con el micrófono o subir un mp3, m4a o mp4, y agregar la ilustración.
-- El audio se limpia solo: queda en mono, sin silencios al inicio y al final, con volumen parejo y en mp3 liviano.
-- Al guardar, la palabra queda publicada al instante. No hay que subir carpetas.
-- El panel entrega el QR (SVG para imprenta y PNG), la imagen para historias, el post para el feed y el texto con hashtags listo para copiar.
-- Cada palabra tiene su propia vista previa al compartir el link en WhatsApp, Instagram o Facebook.
+| Dirección | Qué muestra |
+|---|---|
+| `imita.cl` | Vitrina de la plataforma: qué es y qué lenguas tiene |
+| `panel.imita.cl` | Panel central (lleva a `/admin`) |
+| `vananga.cl` | Sitio de rapa nui: colección y una página por palabra (`/p/vave`) |
+| `cualquier-dominio/l/<código>` | Sitio de una lengua sin dominio propio, por ejemplo `/l/mapudungun/p/ruka` |
 
-## Puesta en marcha (una sola vez)
+## El panel
 
-1. **Subir el código a GitHub** en un repositorio, por ejemplo `palabras-rapanui`.
-2. **Conectar Netlify:** en Netlify, *Add new project → Import an existing project → GitHub*, elegir el repositorio y presionar *Deploy*. No hay que cambiar ninguna configuración: todo está en `netlify.toml`.
-3. **Crear la contraseña del panel:** en el proyecto de Netlify, *Project configuration → Environment variables → Add a variable*. Nombre: `ADMIN_PASSWORD`. Valor: una contraseña de al menos 8 caracteres. Para que la tome, hace falta un deploy nuevo: el botón está en *Deploys* (según la versión de Netlify se llama *Trigger deploy* o *Deploy project*), o basta con cualquier cambio nuevo en GitHub.
-4. Entrar a `https://TU-SITIO.netlify.app/admin`, escribir la contraseña y crear la primera palabra.
-5. En la pestaña **Marca**, completar nombre, Instagram, tienda y la frase de la colección.
+- **Palabras:** escribir la palabra (con botones para los caracteres especiales de cada lengua), su significado, otras formas de escribirla (por alfabeto o zona), una o varias voces grabadas con el micrófono o subidas en mp3, m4a o mp4, e ilustración. Al guardar queda publicada y aparecen el QR, la imagen para historias, el post para el feed y el texto con hashtags.
+- **Voces con autorización:** cada voz se publica solo si está marcada "La persona autorizó publicar su voz". Se guarda quién la subió, cuándo y el detalle. Quitar una voz la borra del sitio y del almacenamiento.
+- **Lengua:** nombre en la propia lengua, caracteres especiales, alfabetos, marca, Instagram, tienda, hashtags y color de acento.
+- **Lenguas** (solo administración general): crear lenguas, asignar dominios, activarlas o desactivarlas.
+- **Personas** (solo administración general): dar acceso por correo y contraseña, con permiso solo a ciertas lenguas.
+- **Mi cuenta:** cada persona cambia su contraseña.
 
-## Dominio propio
+La administración general entra con el correo `admin` y la contraseña `ADMIN_PASSWORD` configurada en Netlify.
 
-Cuando compres el dominio, conéctalo en Netlify (*Domain management*) y escríbelo en la pestaña **Marca → Dominio propio**. Desde ese momento los QR y links usan tu dominio. Imprime QR definitivos solo después de esto.
+## Configuración en Netlify
+
+Variables de entorno (*Project configuration → Environment variables*):
+
+- `ADMIN_PASSWORD` (obligatoria): contraseña de la administración general, mínimo 8 caracteres. También firma las sesiones: si la cambias, todas las personas tienen que volver a entrar.
+- `CONTACTO_IMITA` (opcional): correo que aparece en la vitrina para que otras comunidades escriban.
+
+Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.cl`, `www.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.
+
+## Agregar una lengua nueva
+
+1. Panel → **Lenguas** → *Nueva lengua* (nombre y código corto, por ejemplo `mapudungun`).
+2. En **Lengua**, completar caracteres especiales, alfabetos y marca. Si tiene dominio propio, escribirlo en *Dominios* y agregarlo también en Netlify.
+3. Panel → **Personas**: dar acceso a quienes la van a administrar.
+
+Mientras no tenga dominio propio, su sitio funciona en `imita.cl/l/<código>`. Los QR definitivos se imprimen con el dominio que vaya a quedar para siempre.
 
 ## Reglas que no cambian
 
-- La dirección de cada palabra (`/p/vave`) queda fija al crearla. Es la que lleva el QR impreso.
-- El audio, la imagen y los textos se pueden corregir cuando quieras; el QR sigue funcionando.
-- Una palabra sin "Validada" muestra el aviso "Por validar". Una palabra sin "Publicada" queda guardada pero oculta.
-- Los QR antiguos con `?p=palabra` siguen funcionando: llevan a `/p/palabra`.
+- La dirección de cada palabra (`/p/vave`) queda fija al crearla: es la que lleva el QR impreso. El audio, la imagen y los textos se pueden corregir cuando quieras.
+- Los QR antiguos con `?p=palabra` siguen funcionando.
 
 ## Cómo está hecho
 
-- `public/`: páginas estáticas (panel, estilos, fuentes, librerías).
-- `netlify/functions/pagina.mjs`: genera la portada y la página de cada palabra, con su vista previa para redes.
-- `netlify/functions/admin.mjs`: guarda, edita y elimina palabras. Exige la contraseña.
-- `netlify/functions/media.mjs`: entrega audios e imágenes.
-- Los datos y archivos se guardan en Netlify Blobs, dentro de la misma cuenta de Netlify. No hay base de datos aparte.
+- `netlify/functions/pagina.mjs`: vitrina, sitio de cada lengua y página de cada palabra, con su vista previa para redes. Decide qué mostrar según el dominio.
+- `netlify/functions/admin.mjs`: todo el panel. Revisa en cada acción quién la pide y a qué lengua tiene acceso.
+- `netlify/functions/media.mjs`: entrega audios e imágenes (con soporte de rangos para iPhone).
+- `netlify/lib/comun.mjs`: datos, lenguas, accesos y la migración automática desde la versión de una sola lengua.
+- Datos y archivos en Netlify Blobs, dentro de la misma cuenta. Sin base de datos aparte.
 
-Librerías incluidas: `lamejs` (LGPL, convierte a mp3, ver `public/lib/lame-LICENSE.txt`) y `qrcode-generator` (MIT).
+Librerías incluidas: `lamejs` (LGPL, convierte a mp3; ver `public/lib/lame-LICENSE.txt`) y `qrcode-generator` (MIT).
