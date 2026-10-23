@@ -14,7 +14,7 @@ Todo se maneja desde el panel en `/admin`, en el computador o el celular:
 
 1. **Subir el código a GitHub** en un repositorio, por ejemplo `palabras-rapanui`.
 2. **Conectar Netlify:** en Netlify, *Add new project → Import an existing project → GitHub*, elegir el repositorio y presionar *Deploy*. No hay que cambiar ninguna configuración: todo está en `netlify.toml`.
-3. **Crear la contraseña del panel:** en el proyecto de Netlify, *Project configuration → Environment variables → Add a variable*. Nombre: `ADMIN_PASSWORD`. Valor: una contraseña de al menos 8 caracteres. Después, en *Deploys*, *Trigger deploy → Deploy project* para que la tome.
+3. **Crear la contraseña del panel:** en el proyecto de Netlify, *Project configuration → Environment variables → Add a variable*. Nombre: `ADMIN_PASSWORD`. Valor: una contraseña de al menos 8 caracteres. Para que la tome, hace falta un deploy nuevo: el botón está en *Deploys* (según la versión de Netlify se llama *Trigger deploy* o *Deploy project*), o basta con cualquier cambio nuevo en GitHub.
 4. Entrar a `https://TU-SITIO.netlify.app/admin`, escribir la contraseña y crear la primera palabra.
 5. En la pestaña **Marca**, completar nombre, Instagram, tienda y la frase de la colección.
 
