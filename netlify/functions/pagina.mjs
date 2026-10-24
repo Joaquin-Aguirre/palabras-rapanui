@@ -82,7 +82,7 @@ const ICON = {
   link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l3.5-3.5a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0zM8.5 19a4.5 4.5 0 0 1-3.2-7.7l2.1-2.1a1 1 0 0 1 1.4 1.4l-2.1 2.1a2.5 2.5 0 0 0 3.5 3.5l2.1-2.1a1 1 0 0 1 1.4 1.4l-2.1 2.1A4.5 4.5 0 0 1 8.5 19zm7.4-4.8a1 1 0 0 1-.7-1.7l2.1-2.1a2.5 2.5 0 0 0-3.5-3.5l-2.1 2.1a1 1 0 0 1-1.4-1.4l2.1-2.1a4.5 4.5 0 0 1 6.4 6.4l-2.1 2.1a1 1 0 0 1-.8.2z"/></svg>',
 };
 
-function head({ titulo, descripcion, url, imagen, imagenAlt, acento, css = "/assets/sitio.css" }) {
+function head({ titulo, descripcion, url, imagen, imagenAlt, acento, css = "/assets/lengua.css" }) {
   const a = acento || "#E07A5C";
   return `<!doctype html>
 <html lang="es">
@@ -116,18 +116,18 @@ ${acento === null ? "" : `<style>:root{--accent:${oscurecer(a)}}@media (prefers-
 // ---------------- sitio de una lengua ----------------
 function top(ctx, volver) {
   const m = ctx.lengua.marca;
-  return `<div class="top"><a class="brand" href="${ctx.pre || "/"}">${esc(m.nombre || ctx.lengua.nombre)}</a>${volver ? `<a class="toplink" href="${ctx.pre || "/"}">Todas las palabras</a>` : ""}</div>`;
+  return `<header class="ln-top"><a class="ln-marca" href="${ctx.pre || "/"}">${esc(m.nombre || ctx.lengua.nombre)}</a><nav>${volver ? `<a href="${ctx.pre || "/"}">Todas las palabras</a>` : ""}<a href="https://${PLATAFORMA.aprende}">Más lenguas</a></nav></header>`;
 }
 function pie(ctx) {
   const m = ctx.lengua.marca;
-  return `<footer>${m.instagram ? `<a href="https://instagram.com/${encodeURIComponent(m.instagram)}" target="_blank" rel="noopener">Instagram @${esc(m.instagram)}</a>` : ""}${m.tienda ? `<a href="${esc(m.tienda)}" target="_blank" rel="noopener">Tienda</a>` : ""}${m.contacto ? `<span>${esc(m.contacto)}</span>` : ""}<span>Palabras ${esc(ctx.lengua.nombre.toLowerCase())} en la voz de sus hablantes</span><a href="https://${PLATAFORMA.aprende}" target="_blank" rel="noopener">Más lenguas</a><a href="https://${PLATAFORMA.dominio}" target="_blank" rel="noopener">Hecho con ${PLATAFORMA.nombre}</a></footer>`;
+  return `<footer class="ln-pie">${m.instagram ? `<a href="https://instagram.com/${encodeURIComponent(m.instagram)}" target="_blank" rel="noopener">Instagram @${esc(m.instagram)}</a>` : ""}${m.tienda ? `<a href="${esc(m.tienda)}" target="_blank" rel="noopener">Tienda</a>` : ""}${m.contacto ? `<span>${esc(m.contacto)}</span>` : ""}<span>Palabras ${esc(ctx.lengua.nombre.toLowerCase())} en la voz de sus hablantes</span><a href="https://${PLATAFORMA.dominio}" target="_blank" rel="noopener">Hecho con ${PLATAFORMA.nombre}</a></footer>`;
 }
-function parche(p) {
-  const dentro = p.imagen ? `<img src="${esc(p.imagen)}" alt="" loading="lazy">` : `<span class="mini">${esc([...p.palabra][0] || "")}</span>`;
-  return `<div class="patch">${dentro}</div>`;
+function pin(p, cls = "ln-pin") {
+  return `<span class="${cls}">${p.imagen ? `<img src="${esc(p.imagen)}" alt=""${cls === "ln-pin" ? ' loading="lazy"' : ""}>` : `<span>${esc([...p.palabra][0] || "")}</span>`}</span>`;
 }
 function tarjeta(ctx, p) {
-  return `<a class="card" href="${ctx.pre}/p/${esc(p.slug)}">${parche(p)}<span class="w" lang="und">${esc(p.palabra)}</span><span class="t">${esc(p.es)}</span></a>`;
+  return `<li><a class="ln-card" href="${ctx.pre}/p/${esc(p.slug)}">${pin(p)}<span class="ln-ic" aria-hidden="true">${p.audio ? ICON.play : ""}</span>` +
+    `<span class="ln-w" lang="und">${esc(p.palabra)}</span><span class="ln-es">${esc(p.es)}</span>${p.tipo ? `<span class="ln-t">${esc(p.tipo)}</span>` : ""}</a></li>`;
 }
 function metaLengua(ctx, extra) {
   const m = ctx.lengua.marca;
@@ -137,24 +137,26 @@ function metaLengua(ctx, extra) {
     url: ctx.canon + "/",
     imagen: ctx.base + "/assets/og.png",
     imagenAlt: "Escanea. Escucha. Dila bien.",
-    acento: ctx.lengua.acento,
+    acento: null,
+    css: "/assets/lengua.css",
     ...extra,
   };
 }
+const abrir = (ctx) => `<main id="app" class="ln" style="--c:${esc(ctx.lengua.acento || "#E07A5C")}">`;
 
 function paginaInicio(ctx, palabras) {
   const l = ctx.lengua, m = l.marca;
-  return head(metaLengua(ctx)) + top(ctx, false) +
-    `<section class="intro"><span class="tipo">${esc(l.nombreLengua || "Colección")}</span><h1>Palabras ${esc(l.nombre.toLowerCase())}</h1>${m.bajada ? `<p>${esc(m.bajada)}</p>` : ""}</section>` +
-    (palabras.length ? `<ul class="grid">${palabras.map((p) => `<li>${tarjeta(ctx, p)}</li>`).join("")}</ul>` : `<p class="vacio">Pronto vas a encontrar aquí las primeras palabras de la colección.</p>`) +
-    (m.programa ? `<section class="about"><p>${esc(m.programa)}</p></section>` : "") + pie(ctx) +
+  return head(metaLengua(ctx)).replace('<main id="app">', abrir(ctx)) + top(ctx, false) +
+    `<section class="ln-hero ln-portada"><p class="ln-eyebrow" lang="und">${esc(l.nombreLengua || "Colección")}</p><h1>Palabras ${esc(l.nombre.toLowerCase())}</h1>${m.bajada ? `<p class="ln-bajada">${esc(m.bajada)}</p>` : ""}</section>` +
+    (palabras.length ? `<section class="ln-sec"><h2>Toca una palabra para escucharla</h2><ul class="ln-grid">${palabras.map((p) => tarjeta(ctx, p)).join("")}</ul></section>` : `<p class="ln-vacio">Pronto vas a encontrar aquí las primeras palabras de la colección.</p>`) +
+    (m.programa ? `<section class="ln-nota"><p>${esc(m.programa)}</p></section>` : "") + pie(ctx) +
     `</main><script type="application/json" id="datos-pagina">${JSON.stringify({ lengua: l.id, slug: "_" }).replace(/</g, "\\u003c")}</script><script src="/assets/palabra.js" defer></script></body></html>`;
 }
 
 function paginaNoEncontrada(ctx, palabras, slug) {
-  return head(metaLengua(ctx)) + top(ctx, true) +
-    `<section class="intro"><span class="tipo">Colección</span><h1>Esta palabra viene pronto</h1><p>Todavía no publicamos «${esc(slug)}». Mientras, escucha las que ya están.</p></section>` +
-    `<ul class="grid">${palabras.map((p) => `<li>${tarjeta(ctx, p)}</li>`).join("")}</ul>` + pie(ctx) + `</main></body></html>`;
+  return head(metaLengua(ctx)).replace('<main id="app">', abrir(ctx)) + top(ctx, true) +
+    `<section class="ln-hero ln-portada"><p class="ln-eyebrow">Colección</p><h1>Esta palabra viene pronto</h1><p class="ln-bajada">Todavía no publicamos «${esc(slug)}». Mientras, escucha las que ya están.</p></section>` +
+    `<section class="ln-sec"><ul class="ln-grid">${palabras.map((p) => tarjeta(ctx, p)).join("")}</ul></section>` + pie(ctx) + `</main></body></html>`;
 }
 
 function paginaPalabra(ctx, p, todas) {
@@ -163,10 +165,16 @@ function paginaPalabra(ctx, p, todas) {
   const otras = todas.filter((x) => x.slug !== p.slug);
   const datos = { ...p, url, lengua: l.id, marca: m.nombre || l.nombre, host: ctx.canon.replace(/^https?:\/\//, ""), acento: l.acento };
   const acerca = [m.bajada && `<p>${esc(m.bajada)}</p>`, m.programa && `<p>${esc(m.programa)}</p>`].filter(Boolean).join("");
-  const variantes = p.variantes.length
-    ? `<p class="guia">También se escribe: ${p.variantes.map((v) => `<b style="color:var(--ink)" lang="und">${esc(v.texto)}</b>${v.sistema ? ` <span>(${esc(v.sistema)})</span>` : ""}`).join(", ")}</p>` : "";
+  const fila = (k, v) => `<div class="ln-fila"><dt>${k}</dt><dd>${v}</dd></div>`;
+  const ficha = [
+    p.audios[0] && p.audios[0].voz ? fila("Voz", esc(p.audios[0].voz) + (p.audios[0].variante ? ` · ${esc(p.audios[0].variante)}` : "")) : "",
+    p.guia ? fila("Se pronuncia", `<code>${esc(p.guia)}</code>`) : "",
+    p.variantes.length ? fila("También se escribe", p.variantes.map((v) => `<b lang="und">${esc(v.texto)}</b>${v.sistema ? ` <span class="ln-suave">(${esc(v.sistema)})</span>` : ""}`).join(", ")) : "",
+    p.en.length ? fila("Viene en", esc(p.en.join(", "))) : "",
+    p.validado && p.validadoPor ? fila("Validada por", esc(p.validadoPor)) : "",
+  ].join("");
   const voces = p.audios.length > 1
-    ? `<div class="voces"><span class="lbl">Otras voces</span>${p.audios.slice(1).map((a, i) => `<button type="button" class="chip voz" data-i="${i + 1}">${ICON.play}${esc(a.voz || "Voz " + (i + 2))}${a.variante ? ` · ${esc(a.variante)}` : ""}</button>`).join("")}</div>` : "";
+    ? `<div class="ln-voces"><span class="ln-lbl">Otras voces</span>${p.audios.slice(1).map((a, i) => `<button type="button" class="ln-chip voz" data-i="${i + 1}">${ICON.play}${esc(a.voz || "Voz " + (i + 2))}${a.variante ? ` · ${esc(a.variante)}` : ""}</button>`).join("")}</div>` : "";
 
   return head({
     titulo: `${p.palabra} · ${p.es} en ${l.nombre.toLowerCase()}`,
@@ -174,27 +182,26 @@ function paginaPalabra(ctx, p, todas) {
     url,
     imagen: p.og ? ctx.base + p.og : ctx.base + "/assets/og.png",
     imagenAlt: `${p.palabra}, ${p.es} en ${l.nombre.toLowerCase()}`,
-    acento: l.acento,
-  }) + top(ctx, true) +
-    `<section class="hero">${p.imagen ? parche(p) : ""}` +
-    (p.tipo ? `<span class="tipo">${esc(p.tipo)}</span>` : "") +
-    `<h1 lang="und">${esc(p.palabra)}</h1><p class="es">significa <b>${esc(p.es)}</b></p>` +
-    (!p.validado ? `<div class="aviso">Por validar: estamos confirmando la escritura y el audio con hablantes.</div>` : "") +
+    acento: null,
+    css: "/assets/lengua.css",
+  }).replace('<main id="app">', abrir(ctx)) + top(ctx, true) +
+    `<section class="ln-hero ln-palabra${p.imagen ? " con-img" : ""}">` +
+    `<p class="ln-eyebrow">${esc([p.tipo, l.nombre].filter(Boolean).join(" · "))}</p>` +
     (p.audio
-      ? `<div class="player"><button class="play" id="play" type="button">${ICON.play}Escuchar</button><button class="chip" id="slow" type="button" aria-pressed="false">Más lento</button></div>${p.audios[0].voz ? `<p class="guia">Voz: ${esc(p.audios[0].voz)}${p.audios[0].variante ? ` · ${esc(p.audios[0].variante)}` : ""}</p>` : ""}${voces}`
-      : `<div class="noaudio">El audio de esta palabra se está grabando. Vuelve pronto.</div>`) +
-    (p.guia ? `<div class="guia">Se pronuncia <code>${esc(p.guia)}</code></div>` : "") +
-    variantes +
-    (p.texto ? `<p class="texto">${esc(p.texto)}</p>` : "") +
-    (p.en.length ? `<p class="guia">Viene en: <b style="color:var(--ink)">${esc(p.en.join(", "))}</b></p>` : "") +
-    (p.validado && p.validadoPor ? `<p class="guia">Validada por ${esc(p.validadoPor)}</p>` : "") +
+      ? `<button type="button" class="ln-play" id="play" aria-label="Escuchar ${esc(p.palabra)}">${ICON.play}</button>`
+      : `<span class="ln-play ln-play-off" aria-hidden="true">${ICON.play}</span>`) +
+    `<h1 lang="und">${esc(p.palabra)}</h1><p class="ln-sig">significa <b>${esc(p.es)}</b></p>` +
+    `<div class="ln-acc">${p.audio ? `<button type="button" class="ln-btn" id="slow" aria-pressed="false">Más lento</button>` : `<span class="ln-sinvoz">El audio se está grabando. Vuelve pronto.</span>`}</div>` +
+    (p.imagen ? pin(p, "ln-img") : "") +
     `</section>` +
-    `<section class="share"><h2>Compártela</h2><p>¿La llevas en tu prenda o artículo? Súbela a historias o mándasela a alguien para que aprenda a decirla.</p>` +
-    `<div class="row"><button class="chip primary" type="button" id="story">${ICON.story}Imagen para historias</button>` +
-    `<a class="chip" id="wa" href="https://wa.me/?text=${encodeURIComponent(`¿Sabes cómo se dice "${p.es}" en ${l.nombre.toLowerCase()}? Es ${p.palabra}. Escúchala: ${url}`)}" target="_blank" rel="noopener">${ICON.wa}WhatsApp</a>` +
-    `<button class="chip" type="button" id="copy">${ICON.link}Copiar link</button></div><p class="toast" id="toast" role="status"></p></section>` +
-    (acerca ? `<section class="about"><h2>Por qué una palabra</h2>${acerca}</section>` : "") +
-    (otras.length ? `<section class="more"><h2>Otras palabras de la colección</h2><div class="strip">${otras.map((x) => tarjeta(ctx, x)).join("")}</div></section>` : "") +
+    (!p.validado ? `<p class="ln-aviso">Por validar: estamos confirmando la escritura y el audio con hablantes.</p>` : "") +
+    (ficha || voces || p.texto ? `<section class="ln-ficha">${p.texto ? `<p class="ln-texto">${esc(p.texto)}</p>` : ""}${ficha ? `<dl>${ficha}</dl>` : ""}${voces}</section>` : "") +
+    `<section class="ln-share"><h2>Compártela</h2><p>¿La llevas en tu prenda o artículo? Súbela a historias o mándasela a alguien para que aprenda a decirla.</p>` +
+    `<div class="ln-row"><button class="ln-chip ln-fuerte" type="button" id="story">${ICON.story}Imagen para historias</button>` +
+    `<a class="ln-chip" id="wa" href="https://wa.me/?text=${encodeURIComponent(`¿Sabes cómo se dice "${p.es}" en ${l.nombre.toLowerCase()}? Es ${p.palabra}. Escúchala: ${url}`)}" target="_blank" rel="noopener">${ICON.wa}WhatsApp</a>` +
+    `<button class="ln-chip" type="button" id="copy">${ICON.link}Copiar link</button></div><p class="ln-toast" id="toast" role="status"></p></section>` +
+    (acerca ? `<section class="ln-nota"><h2>Por qué una palabra</h2>${acerca}</section>` : "") +
+    (otras.length ? `<section class="ln-sec"><h2>Otras palabras de la colección</h2><ul class="ln-grid">${otras.map((x) => tarjeta(ctx, x)).join("")}</ul></section>` : "") +
     pie(ctx) +
     `</main><script type="application/json" id="datos-pagina">${JSON.stringify(datos).replace(/</g, "\\u003c")}</script><script src="/assets/palabra.js" defer></script></body></html>`;
 }

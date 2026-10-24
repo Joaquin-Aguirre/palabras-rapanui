@@ -81,6 +81,7 @@
   async function cambiarLengua(id) {
     S.L = S.lenguas.find(function (l) { return l.id === id; });
     guardarLocal("lengua", id); $("lenguaSel").value = id;
+    document.documentElement.style.setProperty("--c", S.L.acento || "#E07A5C");
     $("verSitio").href = S.L.base;
     $("chars").innerHTML = (S.L.caracteres || []).map(function (c) { return '<button type="button" data-ch="' + esc(c) + '" aria-label="Insertar ' + esc(c) + '">' + esc(c) + "</button>"; }).join("");
     $("charsHint").textContent = S.L.caracteres && S.L.caracteres.length ? "Tal como va en la prenda. Usa los botones para los caracteres especiales." : "Tal como va en la prenda.";
