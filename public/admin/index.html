@@ -36,7 +36,9 @@
     </div>
     <nav class="tabs" aria-label="Secciones">
       <button type="button" class="tab" data-tab="palabras" aria-current="page">Palabras</button>
+      <button type="button" class="tab" data-tab="estadisticas">Estadísticas</button>
       <button type="button" class="tab" data-tab="lengua">Lengua</button>
+      <button type="button" class="tab" data-tab="respaldos">Respaldos</button>
       <button type="button" class="tab general" data-tab="lenguas" hidden>Lenguas</button>
       <button type="button" class="tab general" data-tab="personas" hidden>Personas</button>
       <button type="button" class="tab" data-tab="cuenta">Mi cuenta</button>
@@ -184,6 +186,48 @@
       </div>
     </section>
 
+
+    <!-- ============ Estadísticas ============ -->
+    <section id="tabEstadisticas" class="ancho2" hidden>
+      <div class="editor">
+        <div class="ed-head">
+          <h2 id="stTitulo">Estadísticas</h2>
+          <div class="inline"><label for="stMes" class="hint">Mes</label><select id="stMes"></select></div>
+        </div>
+        <div class="kpis" id="stKpis"></div>
+        <div class="f"><span class="lbl">Visitas por día</span><div class="dias" id="stDias" role="img" aria-label="Visitas por día"></div></div>
+        <div class="f">
+          <span class="lbl">Por palabra</span>
+          <div class="tabla-scroll"><table class="st"><thead><tr><th scope="col">Palabra</th><th scope="col">Escaneos QR</th><th scope="col">Otras visitas</th><th scope="col">Reproducciones</th><th scope="col">Compartida</th></tr></thead><tbody id="stFilas"></tbody></table></div>
+        </div>
+        <p class="hint">Cuenta solo personas reales que abren la página (los robots no cuentan). "Escaneos QR" son visitas que llegaron desde un QR impreso desde esta versión del panel.</p>
+      </div>
+    </section>
+
+    <!-- ============ Respaldos ============ -->
+    <section id="tabRespaldos" class="ancho" hidden>
+      <div class="editor">
+        <h2>Respaldos</h2>
+        <div class="f">
+          <span class="lbl">Descargar todo</span>
+          <p class="muted" style="margin:0">Un archivo .zip con todas las palabras, voces e ilustraciones. Guárdalo en tu computador o en Drive de vez en cuando.</p>
+          <div class="inline"><button type="button" class="btn" id="zipLengua">Descargar respaldo de <span id="zipNombre"></span></button><button type="button" class="btn ghost general-only" id="zipTodo" hidden>Descargar todas las lenguas</button></div>
+          <p class="msg" id="msgZip" role="status"></p>
+        </div>
+        <div class="f">
+          <span class="lbl">Papelera</span>
+          <p class="muted" style="margin:0">Las palabras eliminadas se guardan aquí 30 días, con sus voces e imágenes. Después se borran solas.</p>
+          <div id="papelera" class="tabla"></div>
+          <p class="msg" id="msgPapelera" role="status"></p>
+        </div>
+        <div class="f general-only" hidden>
+          <span class="lbl">Copias automáticas diarias</span>
+          <p class="muted" style="margin:0">Cada día se guarda una copia de los datos de todas las lenguas (sin los archivos de audio). Se conservan 30 días.</p>
+          <div id="copias" class="tabla"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ Lengua ============ -->
     <section id="tabLengua" class="ancho" hidden>
       <form id="fLengua" class="editor" novalidate>
@@ -294,6 +338,7 @@
 </div>
 
 <script src="/lib/qrcode.js"></script>
+<script src="/admin/zip.js"></script>
 <script src="/assets/imagenes.js"></script>
 <script src="/admin/admin.js"></script>
 </body>

@@ -18,9 +18,22 @@ Un solo sistema atiende a todas las lenguas:
 - **Lengua:** nombre en la propia lengua, caracteres especiales, alfabetos, marca, Instagram, tienda, hashtags y color de acento.
 - **Lenguas** (solo administración general): crear lenguas, asignar dominios, activarlas o desactivarlas.
 - **Personas** (solo administración general): dar acceso por correo y contraseña, con permiso solo a ciertas lenguas.
+- **Estadísticas:** por mes, escaneos de QR, visitas, reproducciones y veces compartida, en total, por día y por palabra.
+- **Respaldos:** descarga un .zip con todas las palabras, voces e ilustraciones de una lengua (o de todas). Incluye la papelera y las copias automáticas.
 - **Mi cuenta:** cada persona cambia su contraseña.
 
+## Protecciones
+
+- **Ediciones simultáneas:** si dos personas guardan al mismo tiempo, el sistema no pisa cambios. Si ambas editaron la misma palabra, la segunda recibe un aviso para recargarla.
+- **Papelera:** una palabra eliminada se guarda 30 días con sus voces e imágenes y se puede restaurar desde *Respaldos*.
+- **Copia diaria automática:** cada noche se guarda una copia de los datos de todas las lenguas (se conservan 30). Las descarga la administración general en *Respaldos*.
+- **QR con conteo:** los QR del panel llevan `?qr` al final para contar los escaneos; la página lo quita de la dirección al abrirse.
+
 La administración general entra con el correo `admin` y la contraseña `ADMIN_PASSWORD` configurada en Netlify.
+
+## Costos
+
+Netlify cobra por créditos mensuales. En el plan gratuito, si se acaban, **los sitios quedan en pausa hasta el mes siguiente** y los QR dejan de funcionar. Antes de lanzar: plan Personal con recarga automática (*Team settings → Billing*).
 
 ## Configuración en Netlify
 
@@ -49,6 +62,8 @@ Mientras no tenga dominio propio, su sitio funciona en `imita.cl/l/<código>`. L
 - `netlify/functions/pagina.mjs`: vitrina, sitio de cada lengua y página de cada palabra, con su vista previa para redes. Decide qué mostrar según el dominio.
 - `netlify/functions/admin.mjs`: todo el panel. Revisa en cada acción quién la pide y a qué lengua tiene acceso.
 - `netlify/functions/media.mjs`: entrega audios e imágenes (con soporte de rangos para iPhone).
+- `netlify/functions/evento.mjs`: recibe los conteos de visitas, escaneos, reproducciones y compartidos.
+- `netlify/functions/respaldo-diario.mjs`: tarea programada diaria (copia de datos y limpieza de la papelera).
 - `netlify/lib/comun.mjs`: datos, lenguas, accesos y la migración automática desde la versión de una sola lengua.
 - Datos y archivos en Netlify Blobs, dentro de la misma cuenta. Sin base de datos aparte.
 

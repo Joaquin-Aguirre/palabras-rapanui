@@ -134,7 +134,8 @@ function paginaInicio(ctx, palabras) {
   return head(metaLengua(ctx)) + top(ctx, false) +
     `<section class="intro"><span class="tipo">${esc(l.nombreLengua || "Colección")}</span><h1>Palabras ${esc(l.nombre.toLowerCase())}</h1>${m.bajada ? `<p>${esc(m.bajada)}</p>` : ""}</section>` +
     (palabras.length ? `<ul class="grid">${palabras.map((p) => `<li>${tarjeta(ctx, p)}</li>`).join("")}</ul>` : `<p class="vacio">Pronto vas a encontrar aquí las primeras palabras de la colección.</p>`) +
-    (m.programa ? `<section class="about"><p>${esc(m.programa)}</p></section>` : "") + pie(ctx) + `</main></body></html>`;
+    (m.programa ? `<section class="about"><p>${esc(m.programa)}</p></section>` : "") + pie(ctx) +
+    `</main><script>try{navigator.sendBeacon("/api/evento",JSON.stringify({l:${JSON.stringify(l.id)},s:"_",t:"visita"}))}catch(e){}</script></body></html>`;
 }
 
 function paginaNoEncontrada(ctx, palabras, slug) {
@@ -147,7 +148,7 @@ function paginaPalabra(ctx, p, todas) {
   const l = ctx.lengua, m = l.marca;
   const url = `${ctx.canon}/p/${p.slug}`;
   const otras = todas.filter((x) => x.slug !== p.slug);
-  const datos = { ...p, url, marca: m.nombre || l.nombre, host: ctx.canon.replace(/^https?:\/\//, ""), acento: l.acento };
+  const datos = { ...p, url, lengua: l.id, marca: m.nombre || l.nombre, host: ctx.canon.replace(/^https?:\/\//, ""), acento: l.acento };
   const acerca = [m.bajada && `<p>${esc(m.bajada)}</p>`, m.programa && `<p>${esc(m.programa)}</p>`].filter(Boolean).join("");
   const variantes = p.variantes.length
     ? `<p class="guia">También se escribe: ${p.variantes.map((v) => `<b style="color:var(--ink)" lang="und">${esc(v.texto)}</b>${v.sistema ? ` <span>(${esc(v.sistema)})</span>` : ""}`).join(", ")}</p>` : "";

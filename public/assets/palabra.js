@@ -5,6 +5,16 @@
   var toast = $("toast");
   function say(t) { if (toast) toast.textContent = t; }
 
+  // Estadísticas: escaneo de QR, visita, reproducción, compartida
+  function evento(t) {
+    try { var d = JSON.stringify({ l: P.lengua, s: P.slug, t: t }); if (!(navigator.sendBeacon && navigator.sendBeacon("/api/evento", d))) fetch("/api/evento", { method: "POST", body: d, keepalive: true }); } catch (_) {}
+  }
+  var desdeQR = /(^|[?&])qr(=|&|$)/.test(location.search.slice(1));
+  evento(desdeQR ? "qr" : "visita");
+  if (desdeQR && history.replaceState) history.replaceState(null, "", location.pathname);
+  var yaSono = false, yaCompartio = false;
+  function compartida() { if (!yaCompartio) { yaCompartio = true; evento("compartir"); } }
+
   // Audio
   var play = $("play"), slow = $("slow"), a = null;
   function sonar(url) {
@@ -18,6 +28,7 @@
     a.currentTime = 0;
     a.playbackRate = slow && slow.getAttribute("aria-pressed") === "true" ? 0.7 : 1;
     a.play().catch(function () {});
+    if (!yaSono) { yaSono = true; evento("audio"); }
   }
   if (play && P.audios && P.audios.length) {
     play.onclick = function () { sonar(P.audios[0].url); };
@@ -29,7 +40,9 @@
 
   // Copiar link
   var copy = $("copy");
+  var wa = $("wa"); if (wa) wa.addEventListener("click", compartida);
   if (copy) copy.onclick = function () {
+    compartida();
     if (navigator.clipboard) navigator.clipboard.writeText(P.url).then(function () { say("Link copiado."); }, function () { say(P.url); });
     else say(P.url);
   };
@@ -37,7 +50,7 @@
   // Imagen para historias
   var story = $("story");
   if (story) story.onclick = function () {
-    story.disabled = true; say("Preparando la imagen…");
+    story.disabled = true; say("Preparando la imagen…"); compartida();
     var listo = window.Imagenes ? Promise.resolve() : new Promise(function (r, j) {
       var s = document.createElement("script"); s.src = "/assets/imagenes.js"; s.onload = r; s.onerror = j; document.head.appendChild(s);
     });

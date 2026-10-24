@@ -95,6 +95,23 @@ export function baseLengua(lengua, origen) {
   return String(origen || "https://" + PLATAFORMA.dominio).replace(/\/+$/, "") + "/l/" + lengua.id;
 }
 
+// ---------- escritura segura ----------
+// Lee un documento con su versión, aplica el cambio y lo guarda solo si nadie más
+// guardó entremedio. Si alguien se adelantó, vuelve a leer y reintenta el mismo cambio.
+export async function actualizarDoc(clave, cambiar, vacio, store = datos()) {
+  for (let i = 0; i < 6; i++) {
+    const r = await store.getWithMetadata(clave, { type: "json" });
+    const doc = r && r.data ? r.data : JSON.parse(JSON.stringify(vacio));
+    const resultado = await cambiar(doc);
+    const w = r && r.etag
+      ? await store.setJSON(clave, doc, { onlyIfMatch: r.etag })
+      : await store.setJSON(clave, doc, { onlyIfNew: true });
+    if (!w || w.modified !== false) return resultado;
+    await new Promise((ok) => setTimeout(ok, 60 + Math.random() * 240));
+  }
+  throw Object.assign(new Error("Hay muchos cambios al mismo tiempo. Vuelve a intentar en unos segundos."), { status: 409 });
+}
+
 // ---------- palabras ----------
 export async function leerCatalogo(lengua) {
   const c = await datos().get("catalogo/" + lengua, { type: "json" });
@@ -102,6 +119,56 @@ export async function leerCatalogo(lengua) {
 }
 export async function guardarCatalogo(lengua, cat) {
   await datos().setJSON("catalogo/" + lengua, { palabras: cat.palabras });
+}
+export function actualizarCatalogo(lengua, cambiar) {
+  return actualizarDoc("catalogo/" + lengua, (doc) => {
+    if (!Array.isArray(doc.palabras)) doc.palabras = [];
+    return cambiar(doc);
+  }, { palabras: [] });
+}
+export function actualizarLenguas(cambiar) {
+  return actualizarDoc("lenguas", (doc) => {
+    doc.lenguas = (doc.lenguas || []).map(completarLengua);
+    return cambiar(doc);
+  }, { lenguas: [], porDefecto: "" });
+}
+export function actualizarUsuarios(cambiar) {
+  return actualizarDoc("usuarios", (doc) => {
+    if (!Array.isArray(doc.usuarios)) doc.usuarios = [];
+    return cambiar(doc);
+  }, { usuarios: [] });
+}
+
+// ---------- papelera (30 días) ----------
+// Al eliminar una palabra, sus datos y archivos pasan a la papelera en vez de borrarse.
+export const DIAS_PAPELERA = 30;
+export function clavesMedios(lengua, p) {
+  return [
+    ...(p.audios || []).map((a) => `${lengua}/audio/${p.slug}/${a.id}`),
+    ...(p.imagen ? [`${lengua}/img/${p.slug}`] : []),
+    ...(p.og ? [`${lengua}/og/${p.slug}`] : []),
+  ];
+}
+export async function moverMedio(desde, hacia) {
+  const md = medios();
+  const r = await md.getWithMetadata(desde, { type: "arrayBuffer" });
+  if (!r || !r.data) return false;
+  await md.set(hacia, r.data, { metadata: r.metadata || {} });
+  await md.delete(desde);
+  return true;
+}
+export async function enviarAPapelera(lengua, p, por, extraClaves = []) {
+  const id = Date.now() + "-" + p.slug;
+  const claves = [...clavesMedios(lengua, p), ...extraClaves];
+  for (const k of claves) await moverMedio(k, `papelera/${id}/${k}`).catch(() => {});
+  await datos().setJSON(`papelera/${lengua}/${id}`, { id, lengua, palabra: p, claves, borrada: new Date().toISOString(), por });
+  return id;
+}
+
+// ---------- fechas ----------
+export function mesActual(d = new Date()) {
+  const f = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric", month: "2-digit" }).formatToParts(d);
+  return f.find((x) => x.type === "year").value + "-" + f.find((x) => x.type === "month").value;
 }
 
 // Lo que el público puede ver de una palabra.

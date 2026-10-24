@@ -87,8 +87,11 @@
     $("sistemaBox").hidden = !sis.length;
     $("sistema").innerHTML = '<option value="">Sin especificar</option>' + sis.map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
     llenarLengua();
+    $("zipNombre").textContent = S.L.nombre;
     var d = await api("l/" + id + "/palabras");
     S.palabras = d.palabras; nueva();
+    if (S.tab === "estadisticas") cargarStats();
+    if (S.tab === "respaldos") cargarRespaldos();
   }
 
   // ---------- pestañas ----------
@@ -96,6 +99,10 @@
     document.querySelectorAll(".tab").forEach(function (x) { if (x.dataset.tab === t) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current"); });
     $("tabPalabras").hidden = t !== "palabras"; $("tabLengua").hidden = t !== "lengua";
     $("tabLenguas").hidden = t !== "lenguas"; $("tabPersonas").hidden = t !== "personas"; $("tabCuenta").hidden = t !== "cuenta";
+    $("tabEstadisticas").hidden = t !== "estadisticas"; $("tabRespaldos").hidden = t !== "respaldos";
+    S.tab = t;
+    if (t === "estadisticas" && S.L) cargarStats();
+    if (t === "respaldos" && S.L) cargarRespaldos();
   }
   document.querySelectorAll(".tab").forEach(function (b) { b.onclick = function () { mostrarTab(b.dataset.tab); }; });
 
@@ -345,7 +352,7 @@
 
     var fd = new FormData(), k = 0;
     var datos = {
-      slugOriginal: nuevaP ? undefined : slug, palabra: palabra, es: es,
+      slugOriginal: nuevaP ? undefined : slug, vBase: nuevaP ? undefined : S.actual.v, palabra: palabra, es: es,
       tipo: $("tipo").value, guia: $("guia").value, texto: $("texto").value, sistema: $("sistema").value,
       en: lista2arr($("en").value), variantes: S.variantes.filter(function (v) { return v.texto.trim(); }),
       validado: $("validado").checked, validadoPor: $("validado").checked ? $("validadoPor").value : "",
@@ -368,7 +375,10 @@
       if (i >= 0) S.palabras[i] = p; else S.palabras.unshift(p);
       S.actual = p; soltarMedios();
       abrirKit(p, nuevaP ? "Publicada" : "Guardada");
-    } catch (err) { fallo(msg, "No se pudo guardar: ")(err); }
+    } catch (err) {
+      fallo(msg, "No se pudo guardar: ")(err);
+      if (/Otra persona/.test(err.message)) { try { S.palabras = (await api("l/" + S.L.id + "/palabras")).palabras; lista(); } catch (_) {} }
+    }
     $("guardar").disabled = false;
   });
 
@@ -410,9 +420,9 @@
     $("fPalabra").hidden = true; $("kit").hidden = false; lista();
     $("kitPalabra").textContent = p.palabra + (titulo ? " · " + titulo.toLowerCase() : "");
     var url = S.L.base + "/p/" + p.slug;
-    $("kitURL").textContent = url; $("kitAbrir").href = url;
+    $("kitURL").textContent = url + " · cada escaneo se cuenta en Estadísticas"; $("kitAbrir").href = url;
     $("kitAvisoDominio").hidden = !!(S.L.dominios && S.L.dominios.length);
-    var svg = qrSvg(url); $("kitQR").innerHTML = svg;
+    var svg = qrSvg(url + "?qr"); $("kitQR").innerHTML = svg;
     $("caption").value = caption(p); say($("kitMsg"), "Generando imágenes…");
     var datos = datosImagenes(p, p.imagen || null);
     var hist = await Imagenes.aBlob(await Imagenes.historia(datos)), post = await Imagenes.aBlob(await Imagenes.post(datos));
@@ -438,6 +448,109 @@
   });
   $("copiarCaption").onclick = function () { copiar($("caption").value, $("kitMsg"), "Texto copiado. Pégalo en Instagram."); };
   $("copiarLink").onclick = function () { copiar(S.kit.url, $("kitMsg"), "Link copiado."); };
+
+
+  // ================= ESTADÍSTICAS =================
+  function fmt(n) { return (n || 0).toLocaleString("es-CL"); }
+  function nombreMes(m) { var p = m.split("-"); return new Date(+p[0], +p[1] - 1, 15).toLocaleDateString("es-CL", { month: "long", year: "numeric" }); }
+  async function cargarStats(mes) {
+    $("stTitulo").textContent = "Estadísticas · " + S.L.nombre;
+    try {
+      var r = await api("l/" + S.L.id + "/estadisticas" + (mes ? "?mes=" + mes : ""));
+      $("stMes").innerHTML = r.meses.map(function (m) { return '<option value="' + m + '"' + (m === r.mes ? " selected" : "") + ">" + esc(nombreMes(m)) + "</option>"; }).join("");
+      var d = r.datos, t = { q: 0, v: 0, a: 0, c: 0 };
+      Object.keys(d).forEach(function (k) { ["q", "v", "a", "c"].forEach(function (c) { t[c] += d[k][c] || 0; }); });
+      $("stKpis").innerHTML = [["q", "Escaneos de QR"], ["v", "Otras visitas"], ["a", "Reproducciones"], ["c", "Veces compartida"]]
+        .map(function (x) { return '<div class="kpi"><b>' + fmt(t[x[0]]) + "</b><span>" + x[1] + "</span></div>"; }).join("");
+      // Días del mes
+      var p = r.mes.split("-"), nd = new Date(+p[0], +p[1], 0).getDate(), max = 1, dias = [];
+      for (var i = 1; i <= nd; i++) { var k = r.mes + "-" + String(i).padStart(2, "0"), n = r.dias[k] || 0; dias.push([k, n]); if (n > max) max = n; }
+      $("stDias").innerHTML = dias.map(function (x) {
+        return '<span class="dia' + (x[1] ? "" : " cero") + '" style="height:' + Math.max(2, Math.round((x[1] / max) * 100)) + '%" title="' + esc(x[0].slice(8) + " · " + fmt(x[1]) + " visitas") + '"></span>';
+      }).join("");
+      // Por palabra
+      var porSlug = {}; S.palabras.forEach(function (w) { porSlug[w.slug] = w; });
+      var filas = Object.keys(d).filter(function (k) { return k !== "_"; }).map(function (k) { return { k: k, x: d[k], tot: (d[k].q || 0) + (d[k].v || 0) }; })
+        .sort(function (a, b) { return b.tot - a.tot; });
+      var top = filas.length ? filas[0].tot || 1 : 1;
+      $("stFilas").innerHTML = filas.length ? filas.map(function (f) {
+        var w = porSlug[f.k];
+        return "<tr><td><span class=\"w\" lang=\"und\">" + esc(w ? w.palabra : f.k) + "</span>" + (w ? ' <span class="muted">' + esc(w.es) + "</span>" : ' <span class="muted">(eliminada)</span>') +
+          '<span class="barra" style="width:' + Math.round((f.tot / top) * 80) + 'px"></span></td><td>' + fmt(f.x.q) + "</td><td>" + fmt(f.x.v) + "</td><td>" + fmt(f.x.a) + "</td><td>" + fmt(f.x.c) + "</td></tr>";
+      }).join("") : '<tr><td colspan="5" class="muted">Todavía no hay visitas este mes.</td></tr>';
+    } catch (err) { if (err.message !== "401") $("stKpis").innerHTML = '<p class="msg err">No se pudieron cargar: ' + esc(err.message) + "</p>"; }
+  }
+  $("stMes").addEventListener("change", function () { cargarStats(this.value); });
+
+  // ================= RESPALDOS =================
+  async function cargarRespaldos() {
+    $("zipNombre").textContent = S.L.nombre;
+    try {
+      var r = await api("l/" + S.L.id + "/papelera");
+      $("papelera").innerHTML = r.items.length ? r.items.map(function (x) {
+        return '<div class="fila"><span class="grow"><b lang="und">' + esc(x.palabra) + '</b> <span class="muted">· ' + esc(x.es) + '</span><br><span class="hint">Eliminada el ' + esc(new Date(x.borrada).toLocaleDateString("es-CL")) + (x.por ? " por " + esc(x.por) : "") + "</span></span>" +
+          '<button type="button" class="btn ghost sm" data-restaurar="' + esc(x.id) + '">Restaurar</button></div>';
+      }).join("") : '<p class="hint">La papelera está vacía.</p>';
+    } catch (err) { fallo($("msgPapelera"), "")(err); }
+    if (S.yo.rol === "general") {
+      try {
+        var c = await api("respaldos");
+        $("copias").innerHTML = c.respaldos.length ? c.respaldos.map(function (f) {
+          return '<div class="fila"><span class="grow"><b>' + esc(new Date(f + "T12:00:00").toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })) + '</b></span><button type="button" class="link" data-copia="' + esc(f) + '">Descargar</button></div>';
+        }).join("") : '<p class="hint">La primera copia automática se crea esta noche.</p>';
+      } catch (_) {}
+    }
+  }
+  $("papelera").addEventListener("click", async function (e) {
+    var id = e.target.dataset.restaurar; if (!id) return;
+    e.target.disabled = true;
+    try {
+      await api("l/" + S.L.id + "/papelera/" + encodeURIComponent(id) + "/restaurar", { method: "POST" });
+      S.palabras = (await api("l/" + S.L.id + "/palabras")).palabras; lista();
+      say($("msgPapelera"), "Restaurada. Ya está de nuevo en la colección y en el sitio.", "ok"); cargarRespaldos();
+    } catch (err) { fallo($("msgPapelera"), "No se pudo restaurar: ")(err); e.target.disabled = false; }
+  });
+  $("copias").addEventListener("click", async function (e) {
+    var f = e.target.dataset.copia; if (!f) return;
+    try { var r = await api("respaldos/" + f); guardarArchivo(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" }), "imita-copia-" + f + ".json"); } catch (_) {}
+  });
+
+  async function armarZip(lenguas) {
+    var archivos = [], total = 0, hechos = 0, hoy = new Date().toISOString().slice(0, 10);
+    var resumen = { tipo: "imita-respaldo", version: 1, fecha: new Date().toISOString(), lenguas: [] };
+    for (var i = 0; i < lenguas.length; i++) {
+      var r = await api("l/" + lenguas[i].id + "/respaldo");
+      resumen.lenguas.push(r);
+      r.palabras.forEach(function (p) { total += p.archivos.length; });
+    }
+    archivos.push({ nombre: "datos.json", datos: JSON.stringify(resumen, null, 2) });
+    archivos.push({ nombre: "LEEME.txt", datos: "Respaldo de IMITA del " + hoy + ".\r\ndatos.json tiene todas las palabras, voces, autorizaciones y configuración.\r\nLas carpetas tienen los audios (mp3) y las ilustraciones (png) de cada lengua.\r\n" });
+    for (var j = 0; j < resumen.lenguas.length; j++) {
+      var L = resumen.lenguas[j];
+      for (var k = 0; k < L.palabras.length; k++) {
+        for (var a = 0; a < L.palabras[k].archivos.length; a++) {
+          var x = L.palabras[k].archivos[a];
+          try {
+            var resp = await fetch(x.url);
+            if (resp.ok) {
+              var tipo = resp.headers.get("content-type") || "", ext = /mpeg/.test(tipo) ? ".mp3" : /png/.test(tipo) ? ".png" : /jpeg/.test(tipo) ? ".jpg" : /webp/.test(tipo) ? ".webp" : /mp4/.test(tipo) ? ".m4a" : "";
+              archivos.push({ nombre: L.lengua.id + "/" + x.clave + ext, datos: new Uint8Array(await resp.arrayBuffer()) });
+            }
+          } catch (_) {}
+          hechos++; say($("msgZip"), "Descargando archivos… " + hechos + " de " + total);
+        }
+      }
+    }
+    return { blob: Zip.crear(archivos), nombre: "imita-respaldo-" + (lenguas.length === 1 ? lenguas[0].id + "-" : "") + hoy + ".zip", total: total };
+  }
+  async function descargarZip(lenguas, btn) {
+    btn.disabled = true; say($("msgZip"), "Preparando respaldo…");
+    try { var z = await armarZip(lenguas); guardarArchivo(z.blob, z.nombre); say($("msgZip"), "Listo: " + z.nombre + " (" + Math.max(1, Math.round(z.blob.size / 1024)) + " KB, " + z.total + " archivos).", "ok"); }
+    catch (err) { fallo($("msgZip"), "No se pudo armar el respaldo: ")(err); }
+    btn.disabled = false;
+  }
+  $("zipLengua").onclick = function () { descargarZip([S.L], this); };
+  $("zipTodo").onclick = function () { descargarZip(S.lenguas, this); };
 
   // ================= LENGUA =================
   var MARCA = { mNombre: "nombre", mInstagram: "instagram", mBajada: "bajada", mPrograma: "programa", mTienda: "tienda", mContacto: "contacto", mHashtags: "hashtags" };
