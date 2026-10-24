@@ -14,7 +14,7 @@ const LIMITES = {
   og: { max: 1.5 * MB, tipos: ["image/png", "image/jpeg"] },
 };
 const TEXTO_MAX = { palabra: 60, es: 120, tipo: 40, guia: 60, texto: 600, sistema: 40, validadoPor: 120 };
-const reservados = new Set([PLATAFORMA.dominio, PLATAFORMA.panel]);
+const reservados = new Set([PLATAFORMA.dominio, PLATAFORMA.aprende, PLATAFORMA.panel]);
 const error = (msg, status) => Object.assign(new Error(msg), { status });
 
 export default async (req) => {

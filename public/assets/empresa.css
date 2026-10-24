@@ -1,0 +1,39 @@
+/* imita.cl: minimalista. Blanco, tinta casi negra y un solo acento coral. Mucho aire, una frase grande. */
+:root{
+  --bg:#FAFAF8; --ink:#101418; --muted:#5E656B; --line:#E2E4E3; --accent:#D9502F; --card:#FFFFFF;
+  --ui:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0C0F12;--ink:#ECEFEF;--muted:#9AA3A8;--line:#22282D;--accent:#F0734F;--card:#13181C;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.em{max-width:64rem;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 22px) 24px calc(env(safe-area-inset-bottom,0px) + 40px);display:flex;flex-direction:column;gap:96px}
+.em-top{display:flex;justify-content:space-between;align-items:center}
+.em-logo{font:800 1.25rem var(--ui);letter-spacing:.22em}
+.em-top a{font:600 .95rem var(--ui);text-decoration:none;color:var(--muted)}
+.em-top a:hover{color:var(--ink)}
+.em-hero{padding-top:6vh;display:flex;flex-direction:column;gap:22px}
+.em-hero h1{margin:0;font:800 clamp(2.8rem,9vw,6.4rem)/.98 var(--ui);letter-spacing:-.035em;max-width:14ch;text-wrap:balance}
+.em-hero h1 span{color:var(--accent)}
+.em-hero p{margin:0;font-size:1.2rem;color:var(--muted);max-width:44ch}
+h2{font:600 .85rem var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 22px}
+.em-modo ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;border-top:1px solid var(--line);padding-top:26px}
+@media (max-width:720px){.em-modo ol{grid-template-columns:1fr}}
+.em-modo li{display:flex;flex-direction:column;gap:6px}
+.em-modo span{font:600 .9rem var(--ui);color:var(--accent);font-variant-numeric:tabular-nums}
+.em-modo b{font:800 1.5rem/1.15 var(--ui);letter-spacing:-.015em}
+.em-modo p{margin:0;color:var(--muted)}
+.em-card{display:flex;flex-direction:column;gap:8px;padding:30px;border:1px solid var(--line);border-radius:22px;background:var(--card);text-decoration:none;transition:border-color .15s}
+.em-card:hover{border-color:var(--ink)}
+.em-tag{font:600 .8rem var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.em-card b{font:800 clamp(1.6rem,4vw,2.4rem)/1.1 var(--ui);letter-spacing:-.02em}
+.em-card p{margin:0;color:var(--muted);max-width:56ch}
+.em-ir{font:600 1rem var(--ui);color:var(--accent);margin-top:6px}
+.em-contacto p{margin:0;font:800 clamp(1.6rem,4.5vw,2.6rem)/1.15 var(--ui);letter-spacing:-.02em}
+.em-contacto a{color:var(--accent);text-decoration-thickness:2px;text-underline-offset:6px}
+.em-pie{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:.95rem}
+.em-pie a{text-decoration:none}

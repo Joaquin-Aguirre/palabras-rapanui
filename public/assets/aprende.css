@@ -1,0 +1,87 @@
+/* aprenda.imita.cl: una palabra grande que suena con un toque; abajo, todas las palabras para explorar.
+   Cada lengua trae su color (--c). Palabras en serif (tiene ʻ y ŋ), interfaz en grotesca. */
+:root{
+  --bg:#F2F4F1; --surface:#FFFFFF; --ink:#0F1F26; --muted:#5B6B6F; --line:#D5DDDA;
+  --c:#E07A5C; --on-c:#FFFFFF;
+  --palabra:"Noto Serif Display",Georgia,serif;
+  --ui:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0B171C;--surface:#132329;--ink:#E6EEEC;--muted:#94A8AB;--line:#24393F;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--body);-webkit-text-size-adjust:100%}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.ap{max-width:72rem;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 20px calc(env(safe-area-inset-bottom,0px) + 40px);display:flex;flex-direction:column;gap:56px}
+
+.ap-top{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.ap-marca{font:800 1.35rem var(--ui);text-decoration:none;letter-spacing:-.02em}
+.ap-marca span{color:var(--muted);font-weight:400}
+.ap-top nav{display:flex;gap:18px;font:600 .95rem var(--ui)}
+.ap-top nav a{text-decoration:none;color:var(--muted)}
+.ap-top nav a:hover{color:var(--ink)}
+.ap-aviso{margin:0;padding:12px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+
+/* Héroe: la palabra del día */
+.ap-hero{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"eye eye" "play palabra" "play sig" "acc acc";align-items:center;gap:6px 28px;padding:36px;border-radius:32px;background:var(--c);color:var(--on-c);position:relative;overflow:hidden}
+.ap-hero::after{content:"";position:absolute;right:-12%;top:-40%;width:60%;aspect-ratio:1;border-radius:50%;border:2px dashed rgba(255,255,255,.35);pointer-events:none}
+.ap-eyebrow{grid-area:eye;margin:0 0 8px;font:600 .85rem var(--ui);letter-spacing:.12em;text-transform:uppercase;opacity:.9}
+.ap-play{grid-area:play;width:clamp(84px,16vw,132px);aspect-ratio:1;border-radius:50%;border:0;background:var(--on-c);color:var(--c);display:grid;place-items:center;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.18);transition:transform .15s}
+.ap-play svg{width:42%;height:42%;fill:currentColor;margin-left:8%}
+.ap-play:active{transform:scale(.94)}
+.ap-play:focus-visible{outline-color:var(--on-c)}
+.ap-hoy{grid-area:palabra;margin:0;font:700 clamp(3.2rem,11vw,7.5rem)/.95 var(--palabra);letter-spacing:-.01em;overflow-wrap:anywhere}
+.ap-sig{grid-area:sig;margin:0;font:400 1.3rem var(--body)}
+.ap-sig b{font-weight:700}
+.ap-acc{grid-area:acc;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-top:18px;position:relative;z-index:1}
+.ap-btn{font:600 1rem var(--ui);border:2px solid var(--on-c);background:transparent;color:var(--on-c);padding:10px 20px;border-radius:999px;cursor:pointer;min-height:46px}
+.ap-btn:hover{background:var(--on-c);color:var(--c)}
+.ap-link{font:600 1rem var(--ui);color:var(--on-c)}
+@media (max-width:560px){.ap-hero{grid-template-areas:"eye eye" "palabra palabra" "sig sig" "play acc";padding:26px;gap:6px 18px}.ap-acc{margin-top:0}}
+
+.ap-intro{max-width:44rem}
+.ap-intro h2{font:800 clamp(1.6rem,4vw,2.4rem)/1.1 var(--ui);letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+.ap-intro p{margin:0;color:var(--muted);font-size:1.1rem;max-width:60ch}
+
+/* Explorar */
+.ap-explorar{display:flex;flex-direction:column;gap:18px}
+.ap-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-inline:-20px;padding-inline:20px}
+.ap-chip{flex:none;font:600 1rem var(--ui);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 16px;border-radius:999px;cursor:pointer;min-height:44px}
+.ap-chip span{color:var(--muted);font-weight:400;margin-left:4px;font-variant-numeric:tabular-nums}
+.ap-chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ap-chip[aria-pressed="true"] span{color:inherit;opacity:.7}
+.ap-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));gap:12px}
+.ap-card{width:100%;height:100%;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"pin ic" "w w" "es es" "l l";gap:4px 8px;text-align:left;padding:14px;border-radius:20px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;transition:border-color .15s,transform .15s}
+.ap-card:hover{border-color:var(--c)}
+.ap-card:active{transform:scale(.98)}
+.ap-card[data-sin]{cursor:default}
+.ap-pin{grid-area:pin;width:52px;height:52px;border-radius:50%;background:var(--c);display:grid;place-items:center;overflow:hidden;color:#fff;font:700 1.4rem var(--palabra)}
+.ap-pin img{width:80%;height:80%;object-fit:contain}
+.ap-ic{grid-area:ic;justify-self:end;align-self:start;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--bg);color:var(--c)}
+.ap-ic:empty{display:none}
+.ap-ic svg{width:16px;height:16px;fill:currentColor;margin-left:2px}
+.ap-w{grid-area:w;font:700 1.6rem/1.1 var(--palabra);margin-top:10px;overflow-wrap:anywhere}
+.ap-es{grid-area:es;color:var(--muted)}
+.ap-l{grid-area:l;font:600 .75rem var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--c);margin-top:6px}
+.ap-card.sonando{border-color:var(--c);box-shadow:0 0 0 3px var(--c) inset}
+.ap-card.sonando .ap-ic{background:var(--c);color:#fff}
+.ap-estado{margin:0;min-height:1.4em;color:var(--muted);font-size:.95rem}
+.ap-vacio{color:var(--muted)}
+
+/* Lenguas */
+.ap-lenguas h2,.ap-pasos h2,.ap-com h2{font:800 1.6rem var(--ui);letter-spacing:-.02em;margin:0 0 14px}
+.ap-lenguas ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:12px}
+.ap-lenguas a{display:flex;flex-direction:column;gap:2px;padding:18px 20px;border-radius:20px;text-decoration:none;background:var(--surface);border-left:6px solid var(--c)}
+.ap-lenguas b{font:800 1.4rem var(--ui)}
+.ap-lenguas span{font:700 1.05rem var(--palabra);color:var(--c)}
+.ap-lenguas em{font-style:normal;color:var(--muted);font-size:.9rem}
+
+.ap-pasos ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:10px;max-width:60ch}
+.ap-com{max-width:46rem}
+.ap-com p{margin:0 0 10px}
+.ap-pie{display:flex;flex-wrap:wrap;gap:10px 22px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:.95rem}
+.ap-pie a{text-decoration:none}
+.ap-pie a:hover{color:var(--ink)}
+@media (prefers-reduced-motion:no-preference){.sonando .ap-ic svg,.ap-play.sonando svg{animation:pulso .9s ease-in-out infinite}@keyframes pulso{50%{transform:scale(.8)}}}

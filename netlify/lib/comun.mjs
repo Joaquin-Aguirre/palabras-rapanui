@@ -12,7 +12,7 @@ import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from
 export const datos = () => getStore({ name: "datos", consistency: "strong" });
 export const medios = () => getStore({ name: "medios", consistency: "strong" });
 
-export const PLATAFORMA = { nombre: "IMITA", dominio: "imita.cl", panel: "panel.imita.cl" };
+export const PLATAFORMA = { nombre: "IMITA", dominio: "imita.cl", aprende: "aprenda.imita.cl", panel: "panel.imita.cl" };
 
 // ---------- utilidades ----------
 export function slugify(s) {
@@ -92,7 +92,7 @@ export async function leerLengua(id) {
 // La dirección pública principal de una lengua (la que va en los QR).
 export function baseLengua(lengua, origen) {
   if (lengua.dominios && lengua.dominios[0]) return "https://" + lengua.dominios[0];
-  return String(origen || "https://" + PLATAFORMA.dominio).replace(/\/+$/, "") + "/l/" + lengua.id;
+  return String(origen || "https://" + PLATAFORMA.aprende).replace(/\/+$/, "") + "/l/" + lengua.id;
 }
 
 // ---------- escritura segura ----------

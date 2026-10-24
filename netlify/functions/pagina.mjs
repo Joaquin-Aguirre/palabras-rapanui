@@ -2,7 +2,8 @@
 // muestren la vista previa correcta.
 //   Dominio de una lengua (vananga.cl):   /   y   /p/:slug
 //   Cualquier dominio, por código:        /l/:lengua   y   /l/:lengua/p/:slug
-//   imita.cl:                             vitrina de la plataforma
+//   imita.cl:                             página de la empresa IMITA SpA
+//   aprenda.imita.cl (y otros):           vitrina para explorar y escuchar todas las lenguas
 //   panel.imita.cl:                       lleva al panel
 import { leerPlataforma, leerCatalogo, publica, esc, lenguaPorHost, normalizarHost, baseLengua, PLATAFORMA } from "../lib/comun.mjs";
 
@@ -26,11 +27,12 @@ export default async (req, context) => {
   if (porCodigo) {
     lengua = activas.find((l) => l.id === porCodigo);
     pre = "/l/" + porCodigo;
-    if (!lengua) return html(vitrina(activas, url, true), 404);
+    if (!lengua) return html(await aprende(activas, url, true), 404);
   } else {
     lengua = lenguaPorHost(activas, host);
     if (!lengua && slug) lengua = activas.find((l) => l.id === plat.porDefecto);   // QR de prueba en la dirección de Netlify
-    if (!lengua) return html(vitrina(activas, url, false));
+    if (!lengua && !slug && host === PLATAFORMA.dominio) return html(empresa(url));
+    if (!lengua) return html(await aprende(activas, url, false));
   }
 
   const { palabras } = await leerCatalogo(lengua.id);
@@ -80,7 +82,7 @@ const ICON = {
   link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l3.5-3.5a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0zM8.5 19a4.5 4.5 0 0 1-3.2-7.7l2.1-2.1a1 1 0 0 1 1.4 1.4l-2.1 2.1a2.5 2.5 0 0 0 3.5 3.5l2.1-2.1a1 1 0 0 1 1.4 1.4l-2.1 2.1A4.5 4.5 0 0 1 8.5 19zm7.4-4.8a1 1 0 0 1-.7-1.7l2.1-2.1a2.5 2.5 0 0 0-3.5-3.5l-2.1 2.1a1 1 0 0 1-1.4-1.4l2.1-2.1a4.5 4.5 0 0 1 6.4 6.4l-2.1 2.1a1 1 0 0 1-.8.2z"/></svg>',
 };
 
-function head({ titulo, descripcion, url, imagen, imagenAlt, acento }) {
+function head({ titulo, descripcion, url, imagen, imagenAlt, acento, css = "/assets/sitio.css" }) {
   const a = acento || "#E07A5C";
   return `<!doctype html>
 <html lang="es">
@@ -104,8 +106,8 @@ function head({ titulo, descripcion, url, imagen, imagenAlt, acento }) {
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%2310272F'/%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%23ECF0EE' stroke-width='1.5' stroke-dasharray='2.5 2'/%3E%3Cpath d='M13 10v12l9-6z' fill='%23E07A5C'/%3E%3C/svg%3E">
 <link rel="preload" href="/fonts/noto-serif-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/fonts.css">
-<link rel="stylesheet" href="/assets/sitio.css">
-<style>:root{--accent:${oscurecer(a)}}@media (prefers-color-scheme:dark){:root{--accent:${a}}}</style>
+<link rel="stylesheet" href="${css}">
+${acento === null ? "" : `<style>:root{--accent:${oscurecer(a)}}@media (prefers-color-scheme:dark){:root{--accent:${a}}}</style>`}
 </head>
 <body>
 <main id="app">`;
@@ -118,7 +120,7 @@ function top(ctx, volver) {
 }
 function pie(ctx) {
   const m = ctx.lengua.marca;
-  return `<footer>${m.instagram ? `<a href="https://instagram.com/${encodeURIComponent(m.instagram)}" target="_blank" rel="noopener">Instagram @${esc(m.instagram)}</a>` : ""}${m.tienda ? `<a href="${esc(m.tienda)}" target="_blank" rel="noopener">Tienda</a>` : ""}${m.contacto ? `<span>${esc(m.contacto)}</span>` : ""}<span>Palabras ${esc(ctx.lengua.nombre.toLowerCase())} en la voz de sus hablantes</span><a href="https://${PLATAFORMA.dominio}" target="_blank" rel="noopener">Hecho con ${PLATAFORMA.nombre}</a></footer>`;
+  return `<footer>${m.instagram ? `<a href="https://instagram.com/${encodeURIComponent(m.instagram)}" target="_blank" rel="noopener">Instagram @${esc(m.instagram)}</a>` : ""}${m.tienda ? `<a href="${esc(m.tienda)}" target="_blank" rel="noopener">Tienda</a>` : ""}${m.contacto ? `<span>${esc(m.contacto)}</span>` : ""}<span>Palabras ${esc(ctx.lengua.nombre.toLowerCase())} en la voz de sus hablantes</span><a href="https://${PLATAFORMA.aprende}" target="_blank" rel="noopener">Más lenguas</a><a href="https://${PLATAFORMA.dominio}" target="_blank" rel="noopener">Hecho con ${PLATAFORMA.nombre}</a></footer>`;
 }
 function parche(p) {
   const dentro = p.imagen ? `<img src="${esc(p.imagen)}" alt="" loading="lazy">` : `<span class="mini">${esc([...p.palabra][0] || "")}</span>`;
@@ -197,29 +199,90 @@ function paginaPalabra(ctx, p, todas) {
     `</main><script type="application/json" id="datos-pagina">${JSON.stringify(datos).replace(/</g, "\\u003c")}</script><script src="/assets/palabra.js" defer></script></body></html>`;
 }
 
-// ---------------- vitrina de la plataforma ----------------
-function vitrina(lenguas, url, noEncontrada) {
-  const tarjetas = lenguas.map((l) => {
-    const href = l.dominios[0] ? "https://" + l.dominios[0] : "/l/" + l.id;
-    return `<li><a class="lengua" href="${esc(href)}"><span class="ln">${esc(l.nombre)}</span>${l.nombreLengua ? `<span class="nl" lang="und">${esc(l.nombreLengua)}</span>` : ""}<span class="dom">${esc(l.dominios[0] || url.host + "/l/" + l.id)}</span></a></li>`;
-  }).join("");
+// ---------------- aprenda.imita.cl: explorar y escuchar ----------------
+async function aprende(lenguas, url, noEncontrada) {
+  const grupos = [];
+  for (const l of lenguas) {
+    const { palabras } = await leerCatalogo(l.id);
+    const vis = palabras.filter((p) => p.publicada !== false).map((p) => publica(p, l.id));
+    grupos.push({ l, vis });
+  }
+  const todas = [];
+  for (const g of grupos) for (const p of g.vis.slice(0, 80)) {
+    const href = (g.l.dominios[0] ? "https://" + g.l.dominios[0] : "/l/" + g.l.id) + "/p/" + p.slug;
+    todas.push({ l: g.l.id, s: p.slug, w: p.palabra, es: p.es, t: p.tipo, a: p.audio, i: p.imagen, h: href });
+  }
+  const conVoz = todas.filter((x) => x.a);
+  const dia = Math.floor(Date.now() / 86400000);
+  const hoy = conVoz.length ? conVoz[dia % conVoz.length] : todas[0];
+  const L = Object.fromEntries(grupos.map((g) => [g.l.id, { n: g.l.nombre, nl: g.l.nombreLengua, c: g.l.acento, d: g.l.dominios[0] || "", k: g.vis.length }]));
+  const datos = { palabras: todas, lenguas: L, hoy: hoy ? hoy.l + "/" + hoy.s : "" };
+  const color = (id) => esc((L[id] && L[id].c) || "#E07A5C");
+
+  const tarjeta = (x) => `<li><button type="button" class="ap-card" data-k="${esc(x.l + "/" + x.s)}" style="--c:${color(x.l)}"${x.a ? "" : " data-sin=\"1\""}>` +
+    `<span class="ap-pin">${x.i ? `<img src="${esc(x.i)}" alt="" loading="lazy">` : `<span>${esc([...x.w][0] || "")}</span>`}</span>` +
+    `<span class="ap-w" lang="und">${esc(x.w)}</span><span class="ap-es">${esc(x.es)}</span>` +
+    `<span class="ap-l">${esc(L[x.l].n)}</span><span class="ap-ic" aria-hidden="true">${x.a ? ICON.play : ""}</span></button></li>`;
+
   return head({
-    titulo: `${PLATAFORMA.nombre} · Lenguas que se escuchan`,
-    descripcion: "Plataforma para que las lenguas originarias se escuchen en lo cotidiano: cada prenda u objeto lleva una palabra y un QR con la voz de un hablante.",
-    url: "https://" + PLATAFORMA.dominio + "/",
+    titulo: "Aprenda · Lenguas que se escuchan",
+    descripcion: "Escucha palabras de lenguas originarias en la voz de sus hablantes. Elige una lengua, toca una palabra y dila bien.",
+    url: "https://" + PLATAFORMA.aprende + "/",
     imagen: url.origin + "/assets/og.png",
     imagenAlt: "Escanea. Escucha. Dila bien.",
-  }) +
-  `<div class="top"><a class="brand" href="/">${PLATAFORMA.nombre}</a><a class="toplink" href="https://${PLATAFORMA.panel}">Acceso al panel</a></div>` +
-  (noEncontrada ? `<p class="aviso">No encontramos esa lengua. Estas son las que están activas.</p>` : "") +
-  `<section class="intro"><span class="tipo">Lenguas originarias</span><h1>Lenguas que se escuchan</h1>` +
-  `<p>Cada prenda u objeto lleva una palabra en una lengua originaria y un QR. Al escanearlo, la palabra se escucha en la voz de un hablante.</p></section>` +
-  `<section class="more"><h2>Lenguas en la plataforma</h2>${tarjetas ? `<ul class="lenguas">${tarjetas}</ul>` : `<p class="vacio">Pronto.</p>`}</section>` +
-  `<section class="pasos"><h2>Cómo funciona</h2><ol>` +
+    css: "/assets/aprende.css",
+    acento: null,
+  }).replace('<main id="app">', '<main id="app" class="ap">') +
+  `<header class="ap-top"><a class="ap-marca" href="/">aprenda<span>.imita</span></a><nav><a href="#explorar">Explorar</a><a href="#comunidades">Comunidades</a></nav></header>` +
+  (noEncontrada ? `<p class="ap-aviso">No encontramos esa lengua. Estas son las que están activas.</p>` : "") +
+  (hoy ? `<section class="ap-hero" style="--c:${color(hoy.l)}">` +
+    `<p class="ap-eyebrow">Palabra del día · <span id="hoyLengua">${esc(L[hoy.l].n)}</span></p>` +
+    `<button type="button" class="ap-play" id="hoyPlay" data-k="${esc(hoy.l + "/" + hoy.s)}" aria-label="Escuchar ${esc(hoy.w)}">${ICON.play}</button>` +
+    `<h1 class="ap-hoy" lang="und" id="hoyPalabra">${esc(hoy.w)}</h1>` +
+    `<p class="ap-sig">significa <b id="hoySig">${esc(hoy.es)}</b></p>` +
+    `<div class="ap-acc"><button type="button" class="ap-btn" id="otra">Otra palabra</button><a class="ap-link" id="hoyVer" href="${esc(hoy.h)}">Ver la palabra</a></div>` +
+    `</section>`
+    : `<section class="ap-hero"><h1 class="ap-hoy">Lenguas que se escuchan</h1><p class="ap-sig">Pronto vas a encontrar aquí las primeras palabras.</p></section>`) +
+  `<section class="ap-intro"><h2>Toca una palabra y escúchala en la voz de quien la habla.</h2><p>Cada prenda u objeto lleva una palabra en una lengua originaria y un QR. Aquí están todas, para escucharlas, repetirlas y compartirlas.</p></section>` +
+  `<section class="ap-explorar" id="explorar"><div class="ap-chips" role="group" aria-label="Elegir lengua"><button type="button" class="ap-chip" data-l="" aria-pressed="true">Todas <span>${todas.length}</span></button>` +
+  grupos.map((g) => `<button type="button" class="ap-chip" data-l="${esc(g.l.id)}" aria-pressed="false" style="--c:${color(g.l.id)}">${esc(g.l.nombre)} <span>${g.vis.length}</span></button>`).join("") + `</div>` +
+  (todas.length ? `<ul class="ap-grid" id="grid">${todas.map(tarjeta).join("")}</ul>` : `<p class="ap-vacio">Todavía no hay palabras publicadas.</p>`) +
+  `<p class="ap-estado" id="estado" role="status"></p></section>` +
+  `<section class="ap-lenguas"><h2>Las lenguas</h2><ul>${grupos.map((g) => `<li style="--c:${color(g.l.id)}"><a href="${esc(g.l.dominios[0] ? "https://" + g.l.dominios[0] : "/l/" + g.l.id)}"><b>${esc(g.l.nombre)}</b>${g.l.nombreLengua ? `<span lang="und">${esc(g.l.nombreLengua)}</span>` : ""}<em>${g.vis.length} ${g.vis.length === 1 ? "palabra" : "palabras"}</em></a></li>`).join("")}</ul></section>` +
+  `<section class="ap-pasos"><h2>Cómo funciona</h2><ol>` +
   `<li><b>Se graba con hablantes.</b> Cada palabra se registra en la voz de una persona de la comunidad, con su autorización.</li>` +
   `<li><b>Va en la prenda.</b> La palabra se borda o estampa, y el QR va en la etiqueta.</li>` +
-  `<li><b>Se escucha y se comparte.</b> Quien la lleva escanea, escucha cómo se dice y la comparte en redes.</li></ol></section>` +
-  `<section class="about"><h2>Para comunidades y organizaciones</h2><p>Cada lengua tiene su propio sitio y su propio equipo. Las comunidades deciden qué palabras se publican, quién las valida y qué voces se usan, y pueden retirar una grabación cuando quieran.</p>` +
+  `<li><b>Se escucha y se comparte.</b> Quien la lleva escanea, escucha cómo se dice y la comparte.</li></ol></section>` +
+  `<section class="ap-com" id="comunidades"><h2>Para comunidades y organizaciones</h2><p>Cada lengua tiene su propio sitio y su propio equipo. Las comunidades deciden qué palabras se publican, quién las valida y qué voces se usan, y pueden retirar una grabación cuando quieran.</p>` +
   (process.env.CONTACTO_IMITA ? `<p>¿Trabajas con una lengua originaria y quieres sumarla? Escríbenos a <b>${esc(process.env.CONTACTO_IMITA)}</b>.</p>` : "") + `</section>` +
-  `<footer><span>${PLATAFORMA.nombre} SpA</span><a href="https://${PLATAFORMA.panel}">Acceso al panel</a></footer></main></body></html>`;
+  `<footer class="ap-pie"><a href="https://${PLATAFORMA.dominio}">Un proyecto de ${PLATAFORMA.nombre}</a><a href="https://${PLATAFORMA.panel}">Acceso al panel</a></footer>` +
+  `</main><script type="application/json" id="datos-aprende">${JSON.stringify(datos).replace(/</g, "\\u003c")}</script><script src="/assets/aprende.js" defer></script></body></html>`;
+}
+
+// ---------------- imita.cl: la empresa ----------------
+function empresa(url) {
+  const contacto = process.env.CONTACTO_IMITA;
+  return head({
+    titulo: "IMITA · Ideas que se vuelven tecnología",
+    descripcion: "IMITA SpA es un estudio chileno que convierte ideas en tecnología que la gente usa: del primer prototipo a un producto en marcha.",
+    url: "https://" + PLATAFORMA.dominio + "/",
+    imagen: url.origin + "/assets/og-imita.png",
+    imagenAlt: "IMITA",
+    css: "/assets/empresa.css",
+    acento: null,
+  }).replace('<main id="app">', '<main id="app" class="em">') +
+  `<header class="em-top"><span class="em-logo">IMITA</span><a href="#contacto">Contacto</a></header>` +
+  `<section class="em-hero"><h1>Ideas que se vuelven <span>tecnología.</span></h1>` +
+  `<p>Somos un estudio en Chile. Tomamos una idea, la convertimos en un prototipo que funciona y lo llevamos a un producto que la gente usa.</p></section>` +
+  `<section class="em-modo"><h2>Cómo trabajamos</h2><ol>` +
+  `<li><span>01</span><b>Entender la idea</b><p>Qué problema resuelve, para quién y qué tiene que pasar para que funcione.</p></li>` +
+  `<li><span>02</span><b>Prototipo real</b><p>En semanas, algo que se puede tocar, probar y mostrar. No una presentación.</p></li>` +
+  `<li><span>03</span><b>Producto en marcha</b><p>Lo que funcionó se vuelve un servicio estable, seguro y fácil de mantener.</p></li></ol></section>` +
+  `<section class="em-proy"><h2>En curso</h2><a class="em-card" href="https://${PLATAFORMA.aprende}">` +
+  `<span class="em-tag">Proyecto propio · 2026</span><b>Lenguas que se escuchan</b>` +
+  `<p>Palabras de lenguas originarias en prendas y objetos. Un QR lleva a la voz de un hablante; un panel permite a cada comunidad publicar sus palabras.</p>` +
+  `<span class="em-ir">aprenda.imita.cl →</span></a></section>` +
+  `<section class="em-contacto" id="contacto"><h2>¿Tienes una idea?</h2>` +
+  (contacto ? `<p>Conversemos. Escríbenos a <a href="mailto:${esc(contacto)}">${esc(contacto)}</a>.</p>` : `<p>Conversemos.</p>`) + `</section>` +
+  `<footer class="em-pie"><span>IMITA SpA · Chile</span><a href="https://${PLATAFORMA.aprende}">aprenda.imita.cl</a></footer></main></body></html>`;
 }

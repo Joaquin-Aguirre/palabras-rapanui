@@ -6,7 +6,8 @@ Un solo sistema atiende a todas las lenguas:
 
 | Dirección | Qué muestra |
 |---|---|
-| `imita.cl` | Vitrina de la plataforma: qué es y qué lenguas tiene |
+| `imita.cl` | Página de la empresa IMITA SpA |
+| `aprenda.imita.cl` | Vitrina para explorar y escuchar todas las lenguas: palabra del día, filtro por lengua, tocar para escuchar |
 | `panel.imita.cl` | Panel central (lleva a `/admin`) |
 | `vananga.cl` | Sitio de rapa nui: colección y una página por palabra (`/p/vave`) |
 | `cualquier-dominio/l/<código>` | Sitio de una lengua sin dominio propio, por ejemplo `/l/mapudungun/p/ruka` |
@@ -59,9 +60,9 @@ Variables de entorno (*Project configuration → Environment variables*):
 
 - `ADMIN_PASSWORD` (obligatoria): contraseña de la administración general. Usa 16 caracteres o más y guárdala en un gestor de contraseñas.
 - `SESSION_SECRET` (recomendada): texto largo y aleatorio que firma las sesiones y los enlaces privados. Si falta, se usa `ADMIN_PASSWORD`. Si la cambias, todas las personas tienen que volver a entrar.
-- `CONTACTO_IMITA` (opcional): correo que aparece en la vitrina para que otras comunidades escriban.
+- `CONTACTO_IMITA` (opcional): correo de contacto que aparece en imita.cl y en aprenda.imita.cl.
 
-Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.cl`, `www.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.
+Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.cl`, `www.imita.cl`, `aprenda.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.
 
 ## Agregar una lengua nueva
 
@@ -69,7 +70,7 @@ Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.c
 2. En **Lengua**, completar caracteres especiales, alfabetos y marca. Si tiene dominio propio, escribirlo en *Dominios* y agregarlo también en Netlify.
 3. Panel → **Personas**: dar acceso a quienes la van a administrar.
 
-Mientras no tenga dominio propio, su sitio funciona en `imita.cl/l/<código>`. Los QR definitivos se imprimen con el dominio que vaya a quedar para siempre.
+Mientras no tenga dominio propio, su sitio funciona en `aprenda.imita.cl/l/<código>`. Los QR definitivos se imprimen con el dominio que vaya a quedar para siempre.
 
 ## Reglas que no cambian
 
