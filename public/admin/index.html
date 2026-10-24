@@ -41,6 +41,7 @@
       <button type="button" class="tab" data-tab="respaldos">Respaldos</button>
       <button type="button" class="tab general" data-tab="lenguas" hidden>Lenguas</button>
       <button type="button" class="tab general" data-tab="personas" hidden>Personas</button>
+      <button type="button" class="tab general" data-tab="actividad" hidden>Actividad</button>
       <button type="button" class="tab" data-tab="cuenta">Mi cuenta</button>
     </nav>
     <div class="bar-end">
@@ -313,9 +314,22 @@
               <label class="check" for="pActivo"><input type="checkbox" id="pActivo" checked> <span>Acceso activo</span></label>
             </div>
           </div>
-          <div class="actions"><button class="btn" type="submit" id="pGuardar">Agregar</button><button class="btn ghost" type="button" id="pCancelar" hidden>Cancelar</button><span class="grow"></span><button class="btn danger" type="button" id="pBorrar" hidden>Quitar acceso</button></div>
+          <div class="actions"><button class="btn" type="submit" id="pGuardar">Agregar</button><button class="btn ghost" type="button" id="pCancelar" hidden>Cancelar</button><button class="btn ghost" type="button" id="pCerrar" hidden>Cerrar sus sesiones</button><span class="grow"></span><button class="btn danger" type="button" id="pBorrar" hidden>Quitar acceso</button></div>
           <p class="msg" id="msgPersona" role="status"></p>
         </form>
+      </div>
+    </section>
+
+    <!-- ============ Actividad (general) ============ -->
+    <section id="tabActividad" class="ancho2" hidden>
+      <div class="editor">
+        <div class="ed-head">
+          <h2>Actividad</h2>
+          <div class="inline"><label for="acMes" class="hint">Mes</label><select id="acMes"></select></div>
+        </div>
+        <p class="muted" style="margin:0">Quién entró al panel y qué cambió. Los intentos fallidos repetidos pueden ser alguien probando contraseñas.</p>
+        <div class="inline"><label class="chk"><input type="checkbox" id="acFallidos"> Solo entradas fallidas y bloqueadas</label></div>
+        <div class="tabla-scroll"><table class="st"><thead><tr><th scope="col">Fecha</th><th scope="col">Persona</th><th scope="col">Acción</th><th scope="col">Detalle</th><th scope="col">IP</th></tr></thead><tbody id="acFilas"></tbody></table></div>
       </div>
     </section>
 
@@ -330,6 +344,11 @@
             <div class="f"><label for="cNueva">Nueva contraseña</label><input type="password" id="cNueva" autocomplete="new-password"></div>
           </div>
           <div class="actions"><button class="btn" type="submit">Cambiar contraseña</button></div>
+          <div class="f" style="margin-top:8px">
+            <span class="lbl">Sesiones</span>
+            <p class="muted" style="margin:0">Si perdiste un celular o entraste desde un computador ajeno, cierra la sesión en todos los demás dispositivos.</p>
+            <div class="actions"><button class="btn ghost" type="button" id="cerrarOtras">Cerrar sesión en los otros dispositivos</button></div>
+          </div>
         </div>
         <p class="msg" id="msgCuenta" role="status"></p>
       </form>

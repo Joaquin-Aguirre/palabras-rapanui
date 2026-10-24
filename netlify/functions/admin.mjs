@@ -3,7 +3,8 @@ import {
   json, limpiar, slugify, esSlug, esId, nuevoId, normalizarDominio, PLATAFORMA,
   leerPlataforma, completarLengua, leerCatalogo, actualizarCatalogo, actualizarLenguas, actualizarUsuarios,
   datos, medios, publica, baseLengua, enviarAPapelera, moverMedio, mesActual,
-  entrar, firmarSesion, quienEs, esGeneral, puedeLengua, leerUsuarios, hashClave, ADMIN_LISTO,
+  entrar, bloqueada, firmarSesion, quienEs, esGeneral, puedeLengua, leerUsuarios, hashClave, ADMIN_LISTO,
+  registrar, firmaPrivada, ipDe,
 } from "../lib/comun.mjs";
 
 const MB = 1024 * 1024;
@@ -30,6 +31,7 @@ export default async (req) => {
 
     if (ruta[0] === "yo" && M === "GET") return await inicio(yo, url);
     if (ruta[0] === "clave" && M === "POST") return await cambiarClave(req, yo);
+    if (ruta[0] === "cerrar-sesiones" && M === "POST") return await cerrarSesiones(req, yo);
 
     // Una lengua: /l/:id/...
     if (ruta[0] === "l") {
@@ -41,10 +43,10 @@ export default async (req) => {
       const [, , que, extra, accion] = ruta;
       if (que === "palabras" && M === "GET") return await listarPalabras(lengua);
       if (que === "palabra" && M === "POST" && !extra) return await guardarPalabra(req, lengua, yo);
-      if (que === "palabra" && M === "DELETE" && esSlug(extra)) return await borrarPalabra(lengua, extra, yo);
+      if (que === "palabra" && M === "DELETE" && esSlug(extra)) return await borrarPalabra(req, lengua, extra, yo);
       if (que === "config" && M === "PUT") return await editarLengua(req, lengua, yo);
       if (que === "papelera" && M === "GET" && !extra) return await verPapelera(lengua);
-      if (que === "papelera" && M === "POST" && extra && accion === "restaurar") return await restaurar(lengua, extra, yo);
+      if (que === "papelera" && M === "POST" && extra && accion === "restaurar") return await restaurar(req, lengua, extra, yo);
       if (que === "respaldo" && M === "GET") return await respaldoLengua(lengua, url);
       if (que === "estadisticas" && M === "GET") return await estadisticas(lengua, url);
       return json({ error: "Ruta desconocida." }, 404);
@@ -52,12 +54,13 @@ export default async (req) => {
 
     // Solo administración general
     if (!esGeneral(yo)) return json({ error: "Solo la administración general puede hacer esto." }, 403);
-    if (ruta[0] === "lenguas" && M === "POST") return await crearLengua(req);
-    if (ruta[0] === "lenguas" && M === "DELETE" && esId(ruta[1])) return await borrarLengua(ruta[1]);
+    if (ruta[0] === "lenguas" && M === "POST") return await crearLengua(req, yo);
+    if (ruta[0] === "lenguas" && M === "DELETE" && esId(ruta[1])) return await borrarLengua(req, ruta[1], yo);
+    if (ruta[0] === "registro" && M === "GET") return await verRegistro(url);
     if (ruta[0] === "usuarios" && M === "GET") return json({ usuarios: (await leerUsuarios()).map(sinClave) });
-    if (ruta[0] === "usuarios" && M === "POST") return await guardarUsuario(req, null);
-    if (ruta[0] === "usuarios" && M === "PUT" && ruta[1]) return await guardarUsuario(req, ruta[1]);
-    if (ruta[0] === "usuarios" && M === "DELETE" && ruta[1]) return await borrarUsuario(ruta[1]);
+    if (ruta[0] === "usuarios" && M === "POST") return await guardarUsuario(req, null, yo);
+    if (ruta[0] === "usuarios" && M === "PUT" && ruta[1]) return await guardarUsuario(req, ruta[1], yo);
+    if (ruta[0] === "usuarios" && M === "DELETE" && ruta[1]) return await borrarUsuario(req, ruta[1], yo);
     if (ruta[0] === "respaldos" && M === "GET" && !ruta[1]) return await listarRespaldos();
     if (ruta[0] === "respaldos" && M === "GET" && /^\d{4}-\d{2}-\d{2}$/.test(ruta[1] || "")) return await verRespaldo(ruta[1]);
     return json({ error: "Ruta desconocida." }, 404);
@@ -68,15 +71,25 @@ export default async (req) => {
   }
 };
 
-export const config = { path: "/api/admin/*" };
+// Límite por visitante: frena a quien pruebe contraseñas o abuse del panel (devuelve 429).
+export const config = { path: "/api/admin/*", rateLimit: { windowLimit: 120, windowSize: 60, aggregateBy: ["ip", "domain"] } };
 
 // ---------------- sesión ----------------
 async function login(req) {
   if (!ADMIN_LISTO()) return json({ error: "Falta configurar ADMIN_PASSWORD (mínimo 8 caracteres) en Netlify." }, 503);
   const b = await req.json().catch(() => ({}));
-  const u = await entrar(b.correo, b.clave);
-  if (!u) { await new Promise((r) => setTimeout(r, 600)); return json({ error: "Correo o contraseña incorrectos." }, 401); }
-  return json({ token: firmarSesion(u.correo), yo: u });
+  const correo = String(b.correo || "").trim().toLowerCase() || "admin";
+  const ip = ipDe(req);
+  const min = await bloqueada(correo, ip);
+  if (min) { await registrar(req, correo, "entrada bloqueada"); return json({ error: `Demasiados intentos fallidos. Espera ${min} minuto${min === 1 ? "" : "s"} y vuelve a intentar.` }, 429); }
+  const u = await entrar(correo, b.clave, { ip });
+  if (!u) {
+    await registrar(req, correo, "entrada fallida");
+    await new Promise((r) => setTimeout(r, 600));
+    return json({ error: "Correo o contraseña incorrectos." }, 401);
+  }
+  await registrar(req, u.correo, "entrada");
+  return json({ token: firmarSesion(u.correo, u.version), yo: u });
 }
 
 async function inicio(yo, url) {
@@ -88,14 +101,37 @@ async function inicio(yo, url) {
 async function cambiarClave(req, yo) {
   if (yo.correo === "admin") return json({ error: "La contraseña de administración general se cambia en Netlify (ADMIN_PASSWORD)." }, 400);
   const b = await req.json().catch(() => ({}));
-  if (!(await entrar(yo.correo, b.actual))) return json({ error: "La contraseña actual no es correcta." }, 400);
+  if (!(await entrar(yo.correo, b.actual, { contar: false }))) return json({ error: "La contraseña actual no es correcta." }, 400);
   if (String(b.nueva || "").length < 8) return json({ error: "La nueva contraseña necesita al menos 8 caracteres." }, 400);
-  await actualizarUsuarios((doc) => {
+  const sv = await actualizarUsuarios((doc) => {
     const u = doc.usuarios.find((x) => x.correo === yo.correo);
     if (!u) throw error("Tu cuenta ya no existe.", 404);
     Object.assign(u, hashClave(b.nueva));
+    u.sv = (u.sv || 0) + 1;
+    return u.sv;
   });
-  return json({ ok: true });
+  await registrar(req, yo.correo, "cambió su contraseña");
+  return json({ ok: true, token: firmarSesion(yo.correo, sv) });
+}
+
+async function cerrarSesiones(req, yo) {
+  if (yo.correo === "admin") return json({ error: "Para cerrar todas las sesiones de administración general, cambia ADMIN_PASSWORD en Netlify." }, 400);
+  const sv = await actualizarUsuarios((doc) => {
+    const u = doc.usuarios.find((x) => x.correo === yo.correo);
+    if (!u) throw error("Tu cuenta ya no existe.", 404);
+    u.sv = (u.sv || 0) + 1;
+    return u.sv;
+  });
+  await registrar(req, yo.correo, "cerró sus otras sesiones");
+  return json({ ok: true, token: firmarSesion(yo.correo, sv) });
+}
+
+async function verRegistro(url) {
+  const mes = /^\d{4}-\d{2}$/.test(url.searchParams.get("mes") || "") ? url.searchParams.get("mes") : mesActual();
+  const st = datos();
+  const [doc, lista] = await Promise.all([st.get("registro/" + mes, { type: "json" }), st.list({ prefix: "registro/" })]);
+  const meses = [...new Set([...lista.blobs.map((b) => b.key.split("/").pop()), mesActual()])].sort().reverse();
+  return json({ mes, meses, entradas: ((doc && doc.e) || []).slice().reverse() });
 }
 
 // ---------------- palabras ----------------
@@ -105,8 +141,14 @@ function vistaAdmin(p, id) {
     publicada: p.publicada !== false,
     creada: p.creada,
     v: p.v,
-    audios: (p.audios || []).map((a) => ({ ...a, url: `/media/${id}/audio/${p.slug}/${a.id}?v=${a.v || p.v || 0}` })),
+    audios: (p.audios || []).map((a) => ({ ...a, url: urlPrivada(id, p.slug, a) })),
   };
+}
+
+// Enlace que funciona aunque la voz no tenga autorización (solo lo recibe quien está en el panel).
+function urlPrivada(L, slug, a) {
+  const clave = `${L}/audio/${slug}/${a.id}`;
+  return `/media/${clave}?v=${a.v || 0}&k=${firmaPrivada(clave)}`;
 }
 
 async function listarPalabras(lengua) {
@@ -149,7 +191,8 @@ async function guardarPalabra(req, lengua, yo) {
       if (!a || !a.archivo) continue;
       const f = archivo(form, a.archivo); if (!f) continue;
       const tipo = tipoValido(f, "audio"), id = nuevoId(), clave = `${L}/audio/${slug}/${id}`;
-      await md.set(clave, await f.arrayBuffer(), { metadata: { type: tipo } });
+      const publico = !!(a.consentimiento && a.consentimiento.ok);
+      await md.set(clave, await f.arrayBuffer(), { metadata: { type: tipo, publico } });
       subidos.push(clave); nuevosAudios[a.archivo] = id;
     }
     for (const campo of ["img", "og"]) {
@@ -163,7 +206,7 @@ async function guardarPalabra(req, lengua, yo) {
   }
 
   // 2) Guardar en el catálogo de forma segura
-  let quitados = [];
+  let quitados = [], cambioPublico = [];
   let p;
   try {
     p = await actualizarCatalogo(L, (doc) => {
@@ -186,7 +229,7 @@ async function guardarPalabra(req, lengua, yo) {
 
       const previos = new Map((x.audios || []).map((a) => [a.id, a]));
       const lista = [];
-      quitados = [];
+      quitados = []; cambioPublico = [];
       for (const a of Array.isArray(d.audios) ? d.audios.slice(0, 10) : []) {
         const cons = a && a.consentimiento ? { ok: !!a.consentimiento.ok, nota: limpiar(a.consentimiento.nota, 300) } : { ok: false, nota: "" };
         if (a.id && previos.has(a.id)) {
@@ -194,6 +237,7 @@ async function guardarPalabra(req, lengua, yo) {
           if (a.quitar) { quitados.push(a.id); continue; }
           const c = prev.consentimiento || {};
           const cambia = c.ok !== cons.ok || (c.nota || "") !== cons.nota;
+          if (!!c.ok !== cons.ok) cambioPublico.push({ id: a.id, publico: cons.ok });
           lista.push({ ...prev, voz: limpiar(a.voz, 80), variante: limpiar(a.variante, 60), consentimiento: cambia ? { ...cons, fecha: new Date().toISOString(), por: yo.correo } : c });
         } else if (a.archivo && nuevosAudios[a.archivo]) {
           lista.push({ id: nuevosAudios[a.archivo], v: ahora, voz: limpiar(a.voz, 80), variante: limpiar(a.variante, 60), consentimiento: { ...cons, fecha: new Date().toISOString(), por: yo.correo }, subidoPor: yo.correo });
@@ -212,20 +256,29 @@ async function guardarPalabra(req, lengua, yo) {
     throw e;
   }
 
-  // 3) Lo quitado va a la papelera (se borra solo a los 30 días)
+  // 3) Si cambió la autorización de una voz, su archivo pasa a público o a privado
+  for (const c of cambioPublico) {
+    const clave = `${L}/audio/${slug}/${c.id}`;
+    const r = await md.getWithMetadata(clave, { type: "arrayBuffer" }).catch(() => null);
+    if (r && r.data) await md.set(clave, r.data, { metadata: { ...(r.metadata || {}), publico: c.publico } });
+  }
+  await registrar(req, yo.correo, nueva ? "creó palabra" : "editó palabra", { l: L, s: slug, d: p.palabra });
+
+  // 4) Lo quitado va a la papelera (se borra solo a los 30 días)
   for (const id of quitados) await moverMedio(`${L}/audio/${slug}/${id}`, `papelera/${ahora}-voz/${L}/audio/${slug}/${id}`).catch(() => {});
   if (d.quitarImagen && !archivo(form, "img")) await moverMedio(`${L}/img/${slug}`, `papelera/${ahora}-img/${L}/img/${slug}`).catch(() => {});
 
   return json({ ok: true, palabra: vistaAdmin(p, L) });
 }
 
-async function borrarPalabra(lengua, slug, yo) {
+async function borrarPalabra(req, lengua, slug, yo) {
   const p = await actualizarCatalogo(lengua.id, (doc) => {
     const i = doc.palabras.findIndex((x) => x.slug === slug);
     if (i < 0) throw error("No existe.", 404);
     return doc.palabras.splice(i, 1)[0];
   });
   await enviarAPapelera(lengua.id, p, yo.correo);
+  await registrar(req, yo.correo, "eliminó palabra", { l: lengua.id, s: slug, d: p.palabra });
   return json({ ok: true });
 }
 
@@ -241,7 +294,7 @@ async function verPapelera(lengua) {
   return json({ items, dias: 30 });
 }
 
-async function restaurar(lengua, id, yo) {
+async function restaurar(req, lengua, id, yo) {
   if (!/^\d+-[a-z0-9-]+$/.test(id)) return json({ error: "Elemento inválido." }, 400);
   const st = datos(), clave = `papelera/${lengua.id}/${id}`;
   const x = await st.get(clave, { type: "json" });
@@ -252,6 +305,7 @@ async function restaurar(lengua, id, yo) {
   });
   for (const k of x.claves || []) await moverMedio(`papelera/${id}/${k}`, k).catch(() => {});
   await st.delete(clave);
+  await registrar(req, yo.correo, "restauró palabra", { l: lengua.id, s: x.palabra.slug, d: x.palabra.palabra });
   return json({ ok: true });
 }
 
@@ -262,7 +316,7 @@ async function respaldoLengua(lengua, url) {
     tipo: "imita-respaldo-lengua", version: 1, fecha: new Date().toISOString(),
     lengua: { ...lengua, base: baseLengua(lengua, url.origin) },
     palabras: palabras.map((p) => ({ ...p, archivos: [
-      ...(p.audios || []).map((a) => ({ clave: `audio/${p.slug}/${a.id}`, url: `/media/${lengua.id}/audio/${p.slug}/${a.id}` })),
+      ...(p.audios || []).map((a) => ({ clave: `audio/${p.slug}/${a.id}`, url: urlPrivada(lengua.id, p.slug, a) })),
       ...(p.imagen ? [{ clave: `img/${p.slug}`, url: `/media/${lengua.id}/img/${p.slug}` }] : []),
     ] })),
   });
@@ -328,10 +382,11 @@ async function editarLengua(req, lengua, yo) {
     }
     return l;
   });
+  await registrar(req, yo.correo, "editó lengua", { l: lengua.id });
   return json({ ok: true, lengua: { ...l, base: baseLengua(l, new URL(req.url).origin) } });
 }
 
-async function crearLengua(req) {
+async function crearLengua(req, yo) {
   const b = await req.json().catch(() => ({}));
   const id = slugify(b.id || b.nombre).replace(/-/g, "");
   const nombre = limpiar(b.nombre, 60);
@@ -344,23 +399,25 @@ async function crearLengua(req) {
     if (!doc.porDefecto) doc.porDefecto = id;
     return nueva;
   });
+  await registrar(req, yo.correo, "creó lengua", { l: id });
   return json({ ok: true, lengua: { ...l, base: baseLengua(l, new URL(req.url).origin) } });
 }
 
-async function borrarLengua(id) {
+async function borrarLengua(req, id, yo) {
   const { palabras } = await leerCatalogo(id);
   if (palabras.length) return json({ error: "Esta lengua tiene palabras. Elimínalas primero, o desactívala." }, 409);
   await actualizarLenguas((doc) => {
     doc.lenguas = doc.lenguas.filter((l) => l.id !== id);
     if (doc.porDefecto === id) doc.porDefecto = doc.lenguas[0] ? doc.lenguas[0].id : "";
   });
+  await registrar(req, yo.correo, "eliminó lengua", { l: id });
   return json({ ok: true });
 }
 
 // ---------------- personas ----------------
 const sinClave = (u) => ({ correo: u.correo, nombre: u.nombre, rol: u.rol, lenguas: u.lenguas, activo: u.activo !== false, creado: u.creado });
 
-async function guardarUsuario(req, correoUrl) {
+async function guardarUsuario(req, correoUrl, yo) {
   const b = await req.json().catch(() => ({}));
   const plat = await leerPlataforma();
   const lenguasOk = (Array.isArray(b.lenguas) ? b.lenguas : []).filter((id) => plat.lenguas.some((l) => l.id === id));
@@ -372,10 +429,13 @@ async function guardarUsuario(req, correoUrl) {
       if (!u) throw error("No existe esa persona.", 404);
       if (typeof b.nombre === "string") u.nombre = limpiar(b.nombre, 80);
       u.lenguas = lenguasOk; u.rol = rol;
+      const cerrar = !!b.clave || (typeof b.activo === "boolean" && !b.activo && u.activo !== false) || !!b.cerrarSesiones;
       if (typeof b.activo === "boolean") u.activo = b.activo;
       if (b.clave) Object.assign(u, hashClave(b.clave));
+      if (cerrar) u.sv = (u.sv || 0) + 1;
       return u;
     });
+    await registrar(req, yo.correo, "editó persona", { d: correoUrl + (b.clave ? " (nueva contraseña)" : "") + (b.activo === false ? " (sin acceso)" : "") });
     return json({ ok: true, usuario: sinClave(u) });
   }
   const correo = String(b.correo || "").trim().toLowerCase();
@@ -387,14 +447,16 @@ async function guardarUsuario(req, correoUrl) {
     doc.usuarios.push(u);
     return u;
   });
+  await registrar(req, yo.correo, "agregó persona", { d: correo });
   return json({ ok: true, usuario: sinClave(u) });
 }
 
-async function borrarUsuario(correo) {
+async function borrarUsuario(req, correo, yo) {
   await actualizarUsuarios((doc) => {
     const n = doc.usuarios.length;
     doc.usuarios = doc.usuarios.filter((x) => x.correo !== correo);
     if (doc.usuarios.length === n) throw error("No existe esa persona.", 404);
   });
+  await registrar(req, yo.correo, "quitó acceso", { d: correo });
   return json({ ok: true });
 }

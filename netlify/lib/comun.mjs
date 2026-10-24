@@ -250,13 +250,25 @@ async function migrarDesdeV1() {
 // Las sesiones son fichas firmadas que duran 30 días.
 // ---------------------------------------------------------------------------
 const DURACION = 30 * 24 * 3600 * 1000;
+// Clave para firmar sesiones y enlaces privados. Mejor si SESSION_SECRET está configurada aparte.
 function secreto() {
   const s = process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
   return createHash("sha256").update("imita:" + s).digest();
 }
 const b64 = (b) => Buffer.from(b).toString("base64url");
-export function firmarSesion(u) {
-  const cuerpo = b64(JSON.stringify({ u, exp: Date.now() + DURACION }));
+export const huellaAdmin = () => createHash("sha256").update("adm:" + (process.env.ADMIN_PASSWORD || "")).digest("hex").slice(0, 12);
+// Firma corta para enlaces privados (voces sin autorización que solo se escuchan desde el panel).
+export function firmaPrivada(texto) {
+  return createHmac("sha256", secreto()).update("priv:" + texto).digest("base64url").slice(0, 22);
+}
+export function firmaPrivadaOk(texto, firma) {
+  const a = Buffer.from(firmaPrivada(texto)), b = Buffer.from(String(firma || ""));
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+// Cada sesión lleva la "versión" de la persona: al cambiar su contraseña, desactivarla o
+// pedir "cerrar todas mis sesiones", la versión sube y las sesiones anteriores dejan de servir.
+export function firmarSesion(u, version) {
+  const cuerpo = b64(JSON.stringify({ u, t: version, exp: Date.now() + DURACION }));
   return cuerpo + "." + b64(createHmac("sha256", secreto()).update(cuerpo).digest());
 }
 function leerSesion(token) {
@@ -292,17 +304,41 @@ export async function guardarUsuarios(usuarios) {
 }
 
 export const ADMIN_LISTO = () => (process.env.ADMIN_PASSWORD || "").length >= 8;
+const ADMIN = () => ({ correo: "admin", nombre: "Administración", rol: "general", lenguas: ["*"], version: huellaAdmin() });
+const vista = (u) => ({ correo: u.correo, nombre: u.nombre, rol: u.rol || "editor", lenguas: u.lenguas || [], version: u.sv || 0 });
 
-// Devuelve { correo, nombre, rol, lenguas } o null.
-export async function entrar(correo, clave) {
-  correo = String(correo || "").trim().toLowerCase();
-  if (correo === "admin" || correo === "") {
-    if (ADMIN_LISTO() && igualSeguro(clave, process.env.ADMIN_PASSWORD)) return { correo: "admin", nombre: "Administración", rol: "general", lenguas: ["*"] };
-    return null;
+// ---------- intentos de entrada ----------
+// Tras 5 intentos fallidos desde una misma conexión, esa cuenta queda bloqueada 15 minutos para
+// esa conexión (aunque la contraseña sea correcta). Desde otra conexión, la persona real puede entrar.
+const MAX_INTENTOS = 5, BLOQUEO_MIN = 15;
+const claveIntentos = (correo, ip) => "intentos/" + createHash("sha256").update(String(correo) + "|" + String(ip || "")).digest("hex").slice(0, 24);
+export const ipDe = (req) => (req && (req.headers.get("x-nf-client-connection-ip") || (req.headers.get("x-forwarded-for") || "").split(",")[0].trim())) || "";
+export async function bloqueada(correo, ip) {
+  const r = await datos().get(claveIntentos(correo, ip), { type: "json" });
+  return r && r.hasta && r.hasta > Date.now() ? Math.ceil((r.hasta - Date.now()) / 60000) : 0;
+}
+async function anotarIntento(correo, ok, ip) {
+  const k = claveIntentos(correo, ip);
+  if (ok) { await datos().delete(k).catch(() => {}); return; }
+  await actualizarDoc(k, (d) => {
+    if (d.hasta && d.hasta < Date.now()) { d.n = 0; d.hasta = 0; }
+    d.n = (d.n || 0) + 1;
+    if (d.n >= MAX_INTENTOS) d.hasta = Date.now() + BLOQUEO_MIN * 60000;
+  }, { n: 0, hasta: 0 }).catch(() => {});
+}
+
+// Devuelve { correo, nombre, rol, lenguas, version } o null.
+export async function entrar(correo, clave, { contar = true, ip = "" } = {}) {
+  correo = String(correo || "").trim().toLowerCase() || "admin";
+  let u = null;
+  if (correo === "admin") {
+    if (ADMIN_LISTO() && igualSeguro(clave, process.env.ADMIN_PASSWORD)) u = ADMIN();
+  } else {
+    const x = (await leerUsuarios()).find((y) => y.correo === correo && y.activo !== false);
+    if (x && claveCorrecta(clave, x)) u = vista(x);
   }
-  const u = (await leerUsuarios()).find((x) => x.correo === correo && x.activo !== false);
-  if (!u || !claveCorrecta(clave, u)) return null;
-  return { correo: u.correo, nombre: u.nombre, rol: u.rol || "editor", lenguas: u.lenguas || [] };
+  if (contar) await anotarIntento(correo, !!u, ip);
+  return u;
 }
 
 // Lee la sesión de la petición y vuelve a consultar los permisos (un acceso retirado se corta al tiro).
@@ -310,9 +346,25 @@ export async function quienEs(req) {
   const h = req.headers.get("authorization") || "";
   const s = leerSesion(h.startsWith("Bearer ") ? h.slice(7) : "");
   if (!s) return null;
-  if (s.u === "admin") return ADMIN_LISTO() ? { correo: "admin", nombre: "Administración", rol: "general", lenguas: ["*"] } : null;
+  if (s.u === "admin") return ADMIN_LISTO() && s.t === huellaAdmin() ? ADMIN() : null;
   const u = (await leerUsuarios()).find((x) => x.correo === s.u && x.activo !== false);
-  return u ? { correo: u.correo, nombre: u.nombre, rol: u.rol || "editor", lenguas: u.lenguas || [] } : null;
+  if (!u || (u.sv || 0) !== (s.t || 0)) return null;
+  return vista(u);
 }
 export const esGeneral = (q) => q && q.rol === "general";
 export const puedeLengua = (q, id) => q && (q.rol === "general" || (q.lenguas || []).includes(id));
+
+// ---------- registro de actividad ----------
+// Un documento por mes con las acciones del panel: quién, qué, cuándo, desde dónde.
+const MAX_REGISTRO = 5000;
+export async function registrar(req, quien, accion, extra = {}) {
+  try {
+    const ip = ipDe(req);
+    const e = { f: new Date().toISOString(), u: quien || "", a: accion, ip, ...extra };
+    await actualizarDoc("registro/" + mesActual(), (d) => {
+      d.e = d.e || [];
+      d.e.push(e);
+      if (d.e.length > MAX_REGISTRO) d.e = d.e.slice(-MAX_REGISTRO);
+    }, { e: [] });
+  } catch (_) { /* el registro nunca bloquea una acción */ }
+}

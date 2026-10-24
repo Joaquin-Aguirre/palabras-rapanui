@@ -43,6 +43,16 @@ export default async (req, context) => {
   return html(paginaPalabra(ctx, p, visibles));
 };
 
+// Encabezados de seguridad: solo se ejecuta código propio del sitio y nadie puede meter la página dentro de otra.
+const SEGURIDAD = {
+  "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'",
+  "x-frame-options": "DENY",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+  "strict-transport-security": "max-age=31536000",
+};
+
 function html(body, status = 200) {
   return new Response(body, {
     status,
@@ -51,6 +61,7 @@ function html(body, status = 200) {
       "cache-control": "public, max-age=0, must-revalidate",
       "netlify-cdn-cache-control": "public, max-age=60, stale-while-revalidate=300",
       "netlify-vary": "header=Host",
+      ...SEGURIDAD,
     },
   });
 }
@@ -135,7 +146,7 @@ function paginaInicio(ctx, palabras) {
     `<section class="intro"><span class="tipo">${esc(l.nombreLengua || "Colección")}</span><h1>Palabras ${esc(l.nombre.toLowerCase())}</h1>${m.bajada ? `<p>${esc(m.bajada)}</p>` : ""}</section>` +
     (palabras.length ? `<ul class="grid">${palabras.map((p) => `<li>${tarjeta(ctx, p)}</li>`).join("")}</ul>` : `<p class="vacio">Pronto vas a encontrar aquí las primeras palabras de la colección.</p>`) +
     (m.programa ? `<section class="about"><p>${esc(m.programa)}</p></section>` : "") + pie(ctx) +
-    `</main><script>try{navigator.sendBeacon("/api/evento",JSON.stringify({l:${JSON.stringify(l.id)},s:"_",t:"visita"}))}catch(e){}</script></body></html>`;
+    `</main><script type="application/json" id="datos-pagina">${JSON.stringify({ lengua: l.id, slug: "_" }).replace(/</g, "\\u003c")}</script><script src="/assets/palabra.js" defer></script></body></html>`;
 }
 
 function paginaNoEncontrada(ctx, palabras, slug) {
@@ -183,7 +194,7 @@ function paginaPalabra(ctx, p, todas) {
     (acerca ? `<section class="about"><h2>Por qué una palabra</h2>${acerca}</section>` : "") +
     (otras.length ? `<section class="more"><h2>Otras palabras de la colección</h2><div class="strip">${otras.map((x) => tarjeta(ctx, x)).join("")}</div></section>` : "") +
     pie(ctx) +
-    `</main><script>window.PALABRA=${JSON.stringify(datos).replace(/</g, "\\u003c")};</script><script src="/assets/palabra.js" defer></script></body></html>`;
+    `</main><script type="application/json" id="datos-pagina">${JSON.stringify(datos).replace(/</g, "\\u003c")}</script><script src="/assets/palabra.js" defer></script></body></html>`;
 }
 
 // ---------------- vitrina de la plataforma ----------------

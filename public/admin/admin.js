@@ -23,6 +23,7 @@
     navigator.clipboard.writeText(texto).then(function () { say(msgEl, ok, "ok"); }, function () { say(msgEl, "No se pudo copiar. Selecciona el texto y cópialo a mano.", "err"); });
   }
   function lista2arr(v) { return String(v || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean); }
+  function nuevoToken(t) { if (!t) return; S.token = t; if (leerLocal("sesion")) guardarLocal("sesion", t); try { if (sessionStorage.getItem("sesion")) sessionStorage.setItem("sesion", t); } catch (_) {} }
   function guardarLocal(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (_) {} }
   function leerLocal(k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k) || ""; } catch (_) { return ""; } }
 
@@ -99,7 +100,8 @@
     document.querySelectorAll(".tab").forEach(function (x) { if (x.dataset.tab === t) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current"); });
     $("tabPalabras").hidden = t !== "palabras"; $("tabLengua").hidden = t !== "lengua";
     $("tabLenguas").hidden = t !== "lenguas"; $("tabPersonas").hidden = t !== "personas"; $("tabCuenta").hidden = t !== "cuenta";
-    $("tabEstadisticas").hidden = t !== "estadisticas"; $("tabRespaldos").hidden = t !== "respaldos";
+    $("tabEstadisticas").hidden = t !== "estadisticas"; $("tabRespaldos").hidden = t !== "respaldos"; $("tabActividad").hidden = t !== "actividad";
+    if (t === "actividad") cargarActividad();
     S.tab = t;
     if (t === "estadisticas" && S.L) cargarStats();
     if (t === "respaldos" && S.L) cargarRespaldos();
@@ -624,7 +626,7 @@
     S.editPersona = null; $("personaTitulo").textContent = "Agregar persona"; $("pGuardar").textContent = "Agregar";
     $("pCorreo").value = ""; $("pCorreo").disabled = false; $("pNombre").value = ""; $("pClave").value = "";
     $("pClaveLbl").textContent = "Contraseña inicial"; $("pGeneral").checked = false; $("pActivo").checked = true;
-    $("pCancelar").hidden = true; $("pBorrar").hidden = true; pintarChecksLenguas(S.L ? [S.L.id] : []);
+    $("pCancelar").hidden = true; $("pBorrar").hidden = true; $("pCerrar").hidden = true; pintarChecksLenguas(S.L ? [S.L.id] : []);
   }
   $("listaPersonas").addEventListener("click", function (e) {
     var c = e.target.dataset.editar; if (!c) return;
@@ -633,7 +635,7 @@
     $("pCorreo").value = u.correo; $("pCorreo").disabled = true; $("pNombre").value = u.nombre || ""; $("pClave").value = "";
     $("pClaveLbl").textContent = "Nueva contraseña (dejar vacío para no cambiarla)";
     $("pGeneral").checked = u.rol === "general"; $("pActivo").checked = u.activo; pintarChecksLenguas(u.lenguas || []);
-    $("pCancelar").hidden = false; $("pBorrar").hidden = false; say($("msgPersona"), "");
+    $("pCancelar").hidden = false; $("pBorrar").hidden = false; $("pCerrar").hidden = false; say($("msgPersona"), "");
     $("fPersona").scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $("pCancelar").onclick = limpiarPersona;
@@ -660,9 +662,38 @@
   // ================= MI CUENTA =================
   $("fCuenta").addEventListener("submit", async function (e) {
     e.preventDefault();
-    try { await api("clave", { method: "POST", json: { actual: $("cActual").value, nueva: $("cNueva").value } }); $("cActual").value = ""; $("cNueva").value = ""; say($("msgCuenta"), "Contraseña cambiada.", "ok"); }
+    try { var r = await api("clave", { method: "POST", json: { actual: $("cActual").value, nueva: $("cNueva").value } }); nuevoToken(r.token); $("cActual").value = ""; $("cNueva").value = ""; say($("msgCuenta"), "Contraseña cambiada. Se cerró la sesión en tus otros dispositivos.", "ok"); }
     catch (err) { fallo($("msgCuenta"), "No se pudo cambiar: ")(err); }
   });
+
+  $("cerrarOtras").onclick = async function () {
+    try { var r = await api("cerrar-sesiones", { method: "POST" }); nuevoToken(r.token); say($("msgCuenta"), "Listo. Solo queda abierta esta sesión.", "ok"); }
+    catch (err) { fallo($("msgCuenta"), "No se pudo: ")(err); }
+  };
+  $("pCerrar").onclick = async function () {
+    var u = S.editPersona; if (!u) return;
+    try {
+      await api("usuarios/" + encodeURIComponent(u.correo), { method: "PUT", json: { nombre: u.nombre, rol: u.rol, activo: u.activo, lenguas: u.lenguas, cerrarSesiones: true } });
+      say($("msgPersona"), "Se cerraron todas las sesiones de " + u.correo + ". Tendrá que volver a entrar.", "ok");
+    } catch (err) { fallo($("msgPersona"), "No se pudo: ")(err); }
+  };
+
+  // ================= ACTIVIDAD (general) =================
+  async function cargarActividad(mes) {
+    try {
+      var r = await api("registro" + (mes ? "?mes=" + mes : ""));
+      $("acMes").innerHTML = r.meses.map(function (m) { return '<option value="' + m + '"' + (m === r.mes ? " selected" : "") + ">" + esc(nombreMes(m)) + "</option>"; }).join("");
+      var solo = $("acFallidos").checked;
+      var es = r.entradas.filter(function (e) { return !solo || /fallida|bloqueada/.test(e.a); });
+      var nombreL = function (id) { var l = S.lenguas.find(function (x) { return x.id === id; }); return l ? l.nombre : id; };
+      $("acFilas").innerHTML = es.length ? es.slice(0, 800).map(function (e) {
+        var det = [e.l ? nombreL(e.l) : "", e.d || ""].filter(Boolean).join(" · ");
+        return '<tr class="' + (/fallida|bloqueada/.test(e.a) ? "alerta" : "") + '"><td>' + esc(new Date(e.f).toLocaleString("es-CL", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })) + '</td><td class="izq">' + esc(e.u) + '</td><td class="izq">' + esc(e.a) + '</td><td class="izq">' + esc(det) + "</td><td>" + esc(e.ip || "") + "</td></tr>";
+      }).join("") : '<tr><td colspan="5" class="muted">Sin actividad registrada.</td></tr>';
+    } catch (err) { if (err.message !== "401") $("acFilas").innerHTML = '<tr><td colspan="5">' + esc(err.message) + "</td></tr>"; }
+  }
+  $("acMes").addEventListener("change", function () { cargarActividad(this.value); });
+  $("acFallidos").addEventListener("change", function () { cargarActividad($("acMes").value); });
 
   // ---------- arranque ----------
   S.token = leerLocal("sesion");

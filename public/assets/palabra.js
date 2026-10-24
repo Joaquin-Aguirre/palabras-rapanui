@@ -1,6 +1,11 @@
 // Página de una palabra: escuchar (una o varias voces), compartir y crear la imagen para historias.
 (function () {
-  var P = window.PALABRA; if (!P) return;
+  var nodo = document.getElementById("datos-pagina"); if (!nodo) return;
+  var P; try { P = JSON.parse(nodo.textContent); } catch (_) { return; }
+  if (P.slug === "_") {   // portada de una lengua: solo cuenta la visita
+    try { navigator.sendBeacon("/api/evento", JSON.stringify({ l: P.lengua, s: "_", t: "visita" })); } catch (_) {}
+    return;
+  }
   var $ = function (id) { return document.getElementById(id); };
   var toast = $("toast");
   function say(t) { if (toast) toast.textContent = t; }

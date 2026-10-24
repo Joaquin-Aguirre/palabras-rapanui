@@ -14,22 +14,40 @@ Un solo sistema atiende a todas las lenguas:
 ## El panel
 
 - **Palabras:** escribir la palabra (con botones para los caracteres especiales de cada lengua), su significado, otras formas de escribirla (por alfabeto o zona), una o varias voces grabadas con el micrófono o subidas en mp3, m4a o mp4, e ilustración. Al guardar queda publicada y aparecen el QR, la imagen para historias, el post para el feed y el texto con hashtags.
-- **Voces con autorización:** cada voz se publica solo si está marcada "La persona autorizó publicar su voz". Se guarda quién la subió, cuándo y el detalle. Quitar una voz la borra del sitio y del almacenamiento.
+- **Voces con autorización:** cada voz se publica solo si está marcada "La persona autorizó publicar su voz". Se guarda quién la subió, cuándo y el detalle. Una voz sin autorización no se puede escuchar fuera del panel. Quitar una voz la saca del sitio y la deja 30 días en la papelera.
 - **Lengua:** nombre en la propia lengua, caracteres especiales, alfabetos, marca, Instagram, tienda, hashtags y color de acento.
 - **Lenguas** (solo administración general): crear lenguas, asignar dominios, activarlas o desactivarlas.
 - **Personas** (solo administración general): dar acceso por correo y contraseña, con permiso solo a ciertas lenguas.
 - **Estadísticas:** por mes, escaneos de QR, visitas, reproducciones y veces compartida, en total, por día y por palabra.
 - **Respaldos:** descarga un .zip con todas las palabras, voces e ilustraciones de una lengua (o de todas). Incluye la papelera y las copias automáticas.
-- **Mi cuenta:** cada persona cambia su contraseña.
+- **Actividad** (solo administración general): quién entró, qué cambió y los intentos fallidos de entrada, por mes.
+- **Mi cuenta:** cada persona cambia su contraseña y puede cerrar la sesión en sus otros dispositivos.
 
 ## Protecciones
 
 - **Ediciones simultáneas:** si dos personas guardan al mismo tiempo, el sistema no pisa cambios. Si ambas editaron la misma palabra, la segunda recibe un aviso para recargarla.
 - **Papelera:** una palabra eliminada se guarda 30 días con sus voces e imágenes y se puede restaurar desde *Respaldos*.
 - **Copia diaria automática:** cada noche se guarda una copia de los datos de todas las lenguas (se conservan 30). Las descarga la administración general en *Respaldos*.
+- **Seguridad:**
+  - Tras 5 intentos fallidos desde una conexión, esa cuenta se bloquea 15 minutos para esa conexión.
+  - Límite de peticiones por visitante en el panel (120 por minuto) y en el contador de visitas (40 por minuto).
+  - Encabezados de seguridad: solo se ejecuta código propio del sitio y ninguna página puede cargarse dentro de otro sitio. El micrófono solo se permite en el panel.
+  - Las sesiones se cierran al cambiar la contraseña, al quitar el acceso o con "Cerrar sus sesiones". Cambiar `ADMIN_PASSWORD` cierra todas las de administración general.
+  - Registro de actividad mensual con fecha, persona, acción e IP.
 - **QR con conteo:** los QR del panel llevan `?qr` al final para contar los escaneos; la página lo quita de la dirección al abrirse.
 
 La administración general entra con el correo `admin` y la contraseña `ADMIN_PASSWORD` configurada en Netlify.
+
+## Cuentas que protegen todo
+
+GitHub, Netlify, el correo y NIC Chile son las llaves del proyecto: verificación en dos pasos en todas. Los dominios, renovados por varios años y con renovación automática: si un dominio vence, otra persona puede comprarlo y los QR impresos llevarían a su sitio.
+
+## Si algo pasa
+
+1. Cambiar `ADMIN_PASSWORD` (y `SESSION_SECRET`) en Netlify y hacer un deploy: se cierran todas las sesiones.
+2. En **Personas**, quitar el acceso a la cuenta comprometida.
+3. Revisar **Actividad** para ver qué se cambió.
+4. Recuperar desde la **papelera** o una **copia diaria**. Si el problema es el código, en Netlify *Deploys* se publica una versión anterior con un clic.
 
 ## Costos
 
@@ -39,7 +57,8 @@ Netlify cobra por créditos mensuales. En el plan gratuito, si se acaban, **los 
 
 Variables de entorno (*Project configuration → Environment variables*):
 
-- `ADMIN_PASSWORD` (obligatoria): contraseña de la administración general, mínimo 8 caracteres. También firma las sesiones: si la cambias, todas las personas tienen que volver a entrar.
+- `ADMIN_PASSWORD` (obligatoria): contraseña de la administración general. Usa 16 caracteres o más y guárdala en un gestor de contraseñas.
+- `SESSION_SECRET` (recomendada): texto largo y aleatorio que firma las sesiones y los enlaces privados. Si falta, se usa `ADMIN_PASSWORD`. Si la cambias, todas las personas tienen que volver a entrar.
 - `CONTACTO_IMITA` (opcional): correo que aparece en la vitrina para que otras comunidades escriban.
 
 Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.cl`, `www.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.

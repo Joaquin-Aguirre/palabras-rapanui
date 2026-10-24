@@ -28,4 +28,5 @@ export default async (req) => {
   return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
 };
 
-export const config = { path: "/api/evento" };
+// Límite por visitante: un bot no puede inflar las estadísticas ni gastar créditos (devuelve 429).
+export const config = { path: "/api/evento", rateLimit: { windowLimit: 40, windowSize: 60, aggregateBy: ["ip", "domain"] } };
