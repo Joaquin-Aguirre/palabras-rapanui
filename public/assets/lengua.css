@@ -6,9 +6,11 @@
   --palabra:"Noto Serif Display",Georgia,serif;
   --ui:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;
   --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
-  color-scheme:light;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root{--bg:#0B171C;--surface:#132329;--ink:#E6EEEC;--muted:#94A8AB;--line:#24393F;color-scheme:dark}}
+/* Fondo oscuro siempre (preferido por IMITA) */
+:root{--bg:#0B171C;--surface:#132329;--ink:#E6EEEC;--muted:#94A8AB;--line:#24393F;}
+
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}

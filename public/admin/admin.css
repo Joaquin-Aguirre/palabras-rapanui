@@ -8,12 +8,14 @@
   --display:"Noto Serif Display",Georgia,serif;
   --ui:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;
   --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
-  color-scheme:light;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root{
+/* Fondo oscuro siempre (preferido por IMITA) */
+:root{
   --bg:#0B171C; --surface:#132329; --ink:#E6EEEC; --muted:#94A8AB; --line:#24393F;
   --err:#FF8A80; --ok:#8FD1AE; --ok-bg:#183A2B; --warn-bg:#3A3018; --warn-ink:#F1DCA6;
-  --rec:#FF6B5B; color-scheme:dark}}
+  --rec:#FF6B5B; }
+
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}

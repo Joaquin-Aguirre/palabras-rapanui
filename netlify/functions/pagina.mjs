@@ -91,7 +91,7 @@ function head({ titulo, descripcion, url, imagen, imagenAlt, acento, css = "/ass
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(titulo)}</title>
 <meta name="description" content="${esc(descripcion)}">
-<meta name="theme-color" content="#10272F">
+<meta name="theme-color" content="#0B171C">
 <link rel="canonical" href="${esc(url)}">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_CL">
