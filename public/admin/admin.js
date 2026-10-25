@@ -78,6 +78,16 @@
   }
   $("lenguaSel").addEventListener("change", function () { cambiarLengua(this.value); });
 
+  // Tipo: lista de opciones, con "Otro" para escribir uno nuevo
+  function ponerTipo(v) {
+    var sel = $("tipoSel"), hay = Array.prototype.some.call(sel.options, function (o) { return o.value === v && o.value !== "__otro"; });
+    sel.value = hay ? v : "__otro"; $("tipo").value = v; $("tipo").hidden = hay;
+  }
+  $("tipoSel").addEventListener("change", function () {
+    if (this.value === "__otro") { $("tipo").value = ""; $("tipo").hidden = false; $("tipo").focus(); }
+    else { $("tipo").value = this.value; $("tipo").hidden = true; }
+  });
+
   async function cambiarLengua(id) {
     S.L = S.lenguas.find(function (l) { return l.id === id; });
     guardarLocal("lengua", id); $("lenguaSel").value = id;
@@ -143,6 +153,7 @@
     S.actual = null; soltarMedios(); mostrarEditor(); S.variantes = [];
     $("edTitulo").textContent = "Nueva palabra";
     ["palabra", "es", "tipo", "en", "guia", "texto", "validadoPor"].forEach(function (k) { $(k).value = ""; });
+    ponerTipo("");
     $("sistema").value = ""; $("validado").checked = false; $("publicada").checked = true; $("validadoPorBox").hidden = true;
     $("borrar").hidden = true; $("verKit").hidden = true; $("verPagina").hidden = true; $("confirmBorrar").hidden = true;
     $("guardar").textContent = "Guardar y publicar";
@@ -151,7 +162,7 @@
   function editar(p) {
     S.actual = p; soltarMedios(); mostrarEditor();
     $("edTitulo").textContent = "Editar palabra";
-    $("palabra").value = p.palabra; $("es").value = p.es; $("tipo").value = p.tipo || ""; $("sistema").value = p.sistema || "";
+    $("palabra").value = p.palabra; $("es").value = p.es; $("tipo").value = p.tipo || ""; ponerTipo(p.tipo || ""); $("sistema").value = p.sistema || "";
     $("en").value = (p.en || []).join(", "); $("guia").value = p.guia || ""; $("texto").value = p.texto || "";
     $("validado").checked = !!p.validado; $("validadoPor").value = p.validadoPor || ""; $("validadoPorBox").hidden = !p.validado;
     $("publicada").checked = p.publicada !== false;

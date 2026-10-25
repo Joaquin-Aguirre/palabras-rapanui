@@ -178,3 +178,5 @@ table.st .w{font:700 1.05rem var(--display)}
 
 table.st td.izq{text-align:left;white-space:normal;min-width:10rem}
 tr.alerta td{color:var(--err)}
+.f select{border-radius:12px;padding:10px 12px;width:100%}
+#tipoSel + #tipo{margin-top:8px}
