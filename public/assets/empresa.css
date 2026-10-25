@@ -3,9 +3,11 @@
   --bg:#FAFAF8; --ink:#101418; --muted:#5E656B; --line:#E2E4E3; --accent:#D9502F; --card:#FFFFFF;
   --ui:"Bricolage Grotesque",system-ui,sans-serif;
   --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
-  color-scheme:light;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root{--bg:#0C0F12;--ink:#ECEFEF;--muted:#9AA3A8;--line:#22282D;--accent:#F0734F;--card:#13181C;color-scheme:dark}}
+/* Fondo oscuro siempre */
+:root{--bg:#0C0F12;--ink:#ECEFEF;--muted:#9AA3A8;--line:#22282D;--accent:#F0734F;--card:#13181C}
+
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body)}
