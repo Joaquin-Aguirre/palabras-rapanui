@@ -5,7 +5,7 @@
 //   imita.cl:                             página de la empresa IMITA SpA
 //   aprenda.imita.cl (y otros):           vitrina para explorar y escuchar todas las lenguas
 //   panel.imita.cl:                       lleva al panel
-import { leerPlataforma, leerCatalogo, publica, esc, lenguaPorHost, normalizarHost, baseLengua, PLATAFORMA } from "../lib/comun.mjs";
+import { leerPlataforma, leerCatalogo, publica, esc, lenguaPorHost, normalizarHost, baseLengua, PLATAFORMA, puedeVer, clavePreviaOk, galletaPrevia, ipDe, bloqueada, registrarIntento } from "../lib/comun.mjs";
 
 export const config = { path: ["/", "/p/:slug", "/l/:lengua", "/l/:lengua/p/:slug"] };
 
@@ -14,6 +14,9 @@ export default async (req, context) => {
   const host = normalizarHost(url.host);
 
   if (host.startsWith("panel.")) return Response.redirect(new URL("/admin/", url), 302);
+
+  // Antes del lanzamiento: pide la clave de vista previa (menos en imita.cl)
+  if (!puedeVer(req)) return await puerta(req, url);
 
   // QR antiguos: /?p=vave -> /p/vave
   const viejo = url.searchParams.get("p");
@@ -292,4 +295,27 @@ function empresa(url) {
   `<section class="em-contacto" id="contacto"><h2>¿Tienes una idea?</h2>` +
   (contacto ? `<p>Conversemos. Escríbenos a <a href="mailto:${esc(contacto)}">${esc(contacto)}</a>.</p>` : `<p>Conversemos.</p>`) + `</section>` +
   `<footer class="em-pie"><span>IMITA SpA · Chile</span><a href="https://${PLATAFORMA.aprende}">aprenda.imita.cl</a></footer></main></body></html>`;
+}
+
+// ---------------- Puerta de vista previa ----------------
+async function puerta(req, url) {
+  const ip = ipDe(req);
+  let error = "";
+  if (req.method === "POST") {
+    if (await bloqueada("previa", ip)) error = "Demasiados intentos. Espera 15 minutos.";
+    else {
+      const datos = await req.formData().catch(() => null);
+      if (datos && clavePreviaOk(datos.get("clave"))) {
+        await registrarIntento("previa", ip, true);
+        return new Response(null, { status: 303, headers: { location: url.pathname + url.search, "set-cookie": galletaPrevia(), "cache-control": "no-store" } });
+      }
+      await registrarIntento("previa", ip, false);
+      error = "Esa clave no es correcta.";
+    }
+  }
+  const cuerpo = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#0B171C"><title>Muy pronto</title><link rel="stylesheet" href="/assets/fonts.css"><link rel="stylesheet" href="/assets/aprende.css"></head><body>` +
+    `<main class="ap" style="max-width:30rem;min-height:100vh;justify-content:center"><section class="ap-intro"><p class="ap-marca">IMITA</p><h2>Muy pronto</h2><p>Estamos preparando este sitio con las comunidades. Si tienes la clave de vista previa, escríbela aquí.</p></section>` +
+    `<form method="post" style="display:flex;flex-wrap:wrap;gap:10px"><label for="clave" style="position:absolute;left:-9999px">Clave</label><input id="clave" name="clave" type="password" placeholder="Clave" autocomplete="current-password" required style="flex:1 1 12rem;font:inherit;font-size:16px;padding:10px 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)"><button class="ap-chip" type="submit" aria-pressed="true">Entrar</button></form>` +
+    (error ? `<p class="ap-aviso" role="alert">${esc(error)}</p>` : "") + `<p class="ap-pie" style="border:0"><a href="https://${PLATAFORMA.dominio}">Conoce IMITA</a></p></main></body></html>`;
+  return new Response(cuerpo, { status: 401, headers: { ...SEGURIDAD, "content-security-policy": SEGURIDAD["content-security-policy"].replace("form-action 'none'", "form-action 'self'"), "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
 }

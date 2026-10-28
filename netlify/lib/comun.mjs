@@ -368,3 +368,30 @@ export async function registrar(req, quien, accion, extra = {}) {
     }, { e: [] });
   } catch (_) { /* el registro nunca bloquea una acción */ }
 }
+
+// ---------------- Acceso previo al lanzamiento ----------------
+// Si CLAVE_PREVIA está configurada, todos los dominios piden esa clave, salvo imita.cl (la empresa)
+// y el panel (que ya tiene su propio acceso). Al lanzar, se borra la variable y todo queda público.
+export const registrarIntento = (quien, ip, ok) => anotarIntento(quien, ok, ip);
+export const COOKIE_PREVIA = "imita_previa";
+export function previaActiva() { return !!(process.env.CLAVE_PREVIA || "").trim(); }
+export function hostLibre(host) {
+  const h = normalizarHost(host);
+  return h === PLATAFORMA.dominio || h === PLATAFORMA.panel || h.startsWith("panel.");
+}
+function sello() { return createHmac("sha256", secreto()).update("previa:" + (process.env.CLAVE_PREVIA || "").trim()).digest("base64url"); }
+export function clavePreviaOk(texto) {
+  const a = createHash("sha256").update(String(texto || "")).digest();
+  const b = createHash("sha256").update((process.env.CLAVE_PREVIA || "").trim()).digest();
+  return timingSafeEqual(a, b);
+}
+export function galletaPrevia() { return `${COOKIE_PREVIA}=${sello()}; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax`; }
+export function puedeVer(req) {
+  if (!previaActiva()) return true;
+  const url = new URL(req.url);
+  if (hostLibre(url.host)) return true;
+  const c = (req.headers.get("cookie") || "").split(/;\s*/).find((x) => x.startsWith(COOKIE_PREVIA + "="));
+  if (!c) return false;
+  const v = Buffer.from(c.slice(COOKIE_PREVIA.length + 1)), e = Buffer.from(sello());
+  return v.length === e.length && timingSafeEqual(v, e);
+}

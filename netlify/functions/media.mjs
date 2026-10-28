@@ -1,10 +1,11 @@
 // GET /media/:lengua/:tipo/:slug[/:id] -> audio, ilustración o imagen de vista previa.
 // Responde pedidos por rangos (206): el iPhone los exige para reproducir audio.
-import { medios, esSlug, esId, firmaPrivadaOk } from "../lib/comun.mjs";
+import { medios, esSlug, esId, firmaPrivadaOk, puedeVer } from "../lib/comun.mjs";
 
 const TIPOS = new Set(["audio", "img", "og"]);
 
 export default async (req, context) => {
+  if (!puedeVer(req)) return new Response("No encontrado", { status: 404 });
   const { lengua, tipo, slug, id } = context.params;
   if (!esId(lengua) || !TIPOS.has(tipo) || !esSlug(slug)) return new Response("No encontrado", { status: 404 });
   if (tipo === "audio" && !/^[a-f0-9]{6,20}$/.test(id || "")) return new Response("No encontrado", { status: 404 });

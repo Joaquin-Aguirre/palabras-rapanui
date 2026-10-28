@@ -60,6 +60,7 @@ Variables de entorno (*Project configuration → Environment variables*):
 
 - `ADMIN_PASSWORD` (obligatoria): contraseña de la administración general. Usa 16 caracteres o más y guárdala en un gestor de contraseñas.
 - `SESSION_SECRET` (recomendada): texto largo y aleatorio que firma las sesiones y los enlaces privados. Si falta, se usa `ADMIN_PASSWORD`. Si la cambias, todas las personas tienen que volver a entrar.
+- `CLAVE_PREVIA` (opcional, antes del lanzamiento): si está, todos los sitios piden esa clave para entrar, salvo `imita.cl` y el panel. La clave se pide una vez por dominio y dura 30 días en ese navegador; tras 5 intentos fallidos esa conexión espera 15 minutos. Para lanzar, se borra la variable y se publica de nuevo. En Netlify, *Visitor access* debe quedar en **Public**.
 - `CONTACTO_IMITA` (opcional): correo de contacto que aparece en imita.cl y en aprenda.imita.cl.
 
 Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.cl`, `www.imita.cl`, `aprenda.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.
