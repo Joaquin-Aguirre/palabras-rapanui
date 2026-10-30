@@ -10,6 +10,7 @@ Un solo sistema atiende a todas las lenguas:
 | `aprenda.imita.cl` | Vitrina para explorar y escuchar todas las lenguas: palabra del día, filtro por lengua, tocar para escuchar |
 | `panel.imita.cl` | Panel central (lleva a `/admin`) |
 | `vananga.cl` | Sitio de rapa nui: colección y una página por palabra (`/p/vave`) |
+| `dunguain.cl` | Sitio de mapudungun |
 | `cualquier-dominio/l/<código>` | Sitio de una lengua sin dominio propio, por ejemplo `/l/mapudungun/p/ruka` |
 
 ## El panel
@@ -63,7 +64,7 @@ Variables de entorno (*Project configuration → Environment variables*):
 - `CLAVE_PREVIA` (opcional, antes del lanzamiento): si está, todos los sitios piden esa clave para entrar, salvo `imita.cl` y el panel. La clave se pide una vez por dominio y dura 30 días en ese navegador; tras 5 intentos fallidos esa conexión espera 15 minutos. Para lanzar, se borra la variable y se publica de nuevo. En Netlify, *Visitor access* debe quedar en **Public**.
 - `CONTACTO_IMITA` (opcional): correo de contacto que aparece en imita.cl y en aprenda.imita.cl.
 
-Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `imita.cl`, `www.imita.cl`, `aprenda.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.
+Dominios (*Domain management*): agregar `vananga.cl`, `www.vananga.cl`, `dunguain.cl`, `www.dunguain.cl`, `imita.cl`, `www.imita.cl`, `aprenda.imita.cl` y `panel.imita.cl` al mismo proyecto. Netlify activa HTTPS solo.
 
 ## Agregar una lengua nueva
 
